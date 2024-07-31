@@ -58,7 +58,7 @@ git clone https://github.com/your-username/event-driven-library.git
 ### NOTE
  **In this repo the library files (.a files) are not included. So you cannot do step 6**
  
- **Let contact me to get it!!!**
+ **Please contact me to get it!!!**
 
    - **ed-core-m0.a  - 12$**
    - **ed-core-m3.a  - 12$**
