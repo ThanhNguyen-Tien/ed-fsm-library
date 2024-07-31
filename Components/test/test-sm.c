@@ -1,11 +1,11 @@
 #include <test/test.h>
-#include <console/log.h>
+//#include <console/log.h>
 
 STATE_BODY(StartUp)
 {
 	ENTER()
 	{
-		LOG_PRINT("StartUp");
+//		LOG_PRINT("StartUp");
 		M_TASK_START(timeout, 1000, 1);
 	}
 	TRANSITION_(TIMEOUT)
@@ -19,7 +19,7 @@ STATE_BODY(Running)
 {
 	ENTER()
 	{
-		LOG_PRINT("Running");
+//		LOG_PRINT("Running");
 		M_TASK_START(timeout, 1000, 5);
 	}
 	TRANSITION_(TIMEOUT)
@@ -38,7 +38,7 @@ STATE_BODY(Stop)
 {
 	ENTER()
 	{
-		LOG_PRINT("Stop");
+//		LOG_PRINT("Stop");
 		M_TASK_START(timeout, 2000, 1);
 	}
 	TRANSITION_(TIMEOUT, StartUp){}

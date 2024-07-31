@@ -4,12 +4,8 @@
 #include <stdint.h>
 #include <core/engine.h>
 #include <core/machine.h>
-#include <console/controller.h>
 
 M_TASK_DEF(timeout)
-U_ACTION_DEF(start)
-U_ACTION_DEF(stop)
-U_TEXT_DEF(hello)
 
 void Test_Init();
 
