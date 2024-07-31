@@ -55,17 +55,19 @@ git clone https://github.com/your-username/event-driven-library.git
 10. Open the correspond COM and check the result
 11. You can see specific operations here [TODO: Youtube Link]
 
-### NOTE
+## NOTE
  **In this repo the library files (.a files) are not included. So you cannot do step 6**
  
  **Please contact me to get it!!!**
 
-   - **ed-core-m0.a  - 12$**
-   - **ed-core-m3.a  - 12$**
-   - **ed-core-m4-fpuHard.a  - 12$**
-   - **ed-core-m7-fpuHard.a  - 12$**
+   - **ed-core-m0.a  - 15$**
+   - **ed-core-m3.a  - 15$**
+   - **ed-core-m4-fpuHard.a  - 15$**
+   - **ed-core-m7-fpuHard.a  - 15$**
 
-### CONTACT
+>**You cannot import Library (.a) built for Cortex m3 into a project whose target device is Cortex m4 and similar with other lines. Compiler will notice errors!!**
+
+## CONTACT
   - Facebook: https://www.facebook.com/nguyentien.thanh.1042032/
   - Gmail: thanhnguyendktd@gmail.com
   - Whatapps: (+84) 965107688 
