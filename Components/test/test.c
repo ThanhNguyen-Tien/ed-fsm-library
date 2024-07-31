@@ -34,7 +34,7 @@ void Test_Init()
 	M_TASK_INIT(timeout);
 
 	//Init for M_EVENT
-	M_EVENT_INIT(empty, 0);
+	M_EVENT_INIT(empty);
 	M_EVENT_INIT(fixed1, sizeof(fake_data_t));
 	M_EVENT_INIT(fixed2, sizeof(uint32_t));
 

@@ -58,7 +58,17 @@ bool Event_Loop();
 
 #define M_EVENT_POST(...) _EVENT_CHOOSER(_EVENT_NARGS(__VA_ARGS__))(__VA_ARGS__)
 
-#define M_EVENT_INIT(name, size)\
+#define _M_EVENT_INIT_1(name)\
+	Event_Init(&name##Event, 0, &name##EventHandler_)
+
+#define _M_EVENT_INIT_2(name, size)\
 	Event_Init(&name##Event, size, &name##EventHandler_)
+
+#define _EVENT_INIT_NARGS2(_1, _2, N, ...) N
+#define _EVENT_INIT_NARGS(...) _EVENT_INIT_NARGS2(__VA_ARGS__, 2, 1)
+#define _EVENT_INIT_CHOOSER2(count) _M_EVENT_INIT_ ## count
+#define _EVENT_INIT_CHOOSER(count) _EVENT_INIT_CHOOSER2(count)
+
+#define M_EVENT_INIT(...) _EVENT_INIT_CHOOSER(_EVENT_NARGS(__VA_ARGS__))(__VA_ARGS__)
 
 #endif /*CORE_EVENT_H*/

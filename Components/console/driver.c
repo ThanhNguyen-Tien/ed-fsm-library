@@ -31,7 +31,7 @@ void ConsoleDrv_Init()
 
 	M_EVENT_INIT(ConsoleDrv_Receive, sizeof(uint16_t));
 #endif
-	M_EVENT_INIT(ConsoleDrv_Send, 0);
+	M_EVENT_INIT(ConsoleDrv_Send);
 
 	ConsoleDrv.consoleRx = &ConsoleDrv_ReceiveHeader;
 
