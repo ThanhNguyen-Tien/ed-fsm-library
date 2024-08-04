@@ -53,7 +53,7 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
 
 7. Now we successfully import library to project.
 8. In the Compoments folder, there is a test folder. This is project base for testing library, you can build and run it to verify if the library work fine.
-9. You can see specific operations here: https://youtu.be/9X190WVI7-U?si=s6HFZRyYMURrwe9_
+9. You can see specific operations here: https://youtu.be/9X190WVI7-U
 
 ## NOTE
  **In this repo the library files (.a files) are not included. So you cannot do step 6**
