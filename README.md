@@ -49,12 +49,10 @@ Event-driven programming is a programming paradigm in which the flow of the prog
 
 - **This library is best used for bare-metal systems, which are systems that do not use an OS.**
 
-- **For MCU (Cortex M) with only 1 core, we only have 1 main loop. EventQueue will be continuously checked in this mainloop through the Engine_Run() function.**
-
 - **If there are no events to handle, the system will perform WAIT FOR INTERRUPT.**
 
-- **Please consider carefully if you intend to use any blocking commands such as HAL_Delay(), while(!UART_Ready()),... or similar because it will affect the EventQueue, delaying the whole system.**
-
 - **Let's make everythings Asynchronous & non-Blocking.**
+
+- **For MCU has only 1 core, we only have 1 main loop. Please consider carefully if you intend to use any blocking functions such as HAL_Delay(), while(!UART_Ready()),... or similar because it will affect the EventQueue, delaying the whole system.**
 
 <p><em><strong><span style="font-size: 1.5em; text-decoration: underline;">Go to Components folder and take a look at README.md to GET STARTED!!!</span></strong></em></p>
