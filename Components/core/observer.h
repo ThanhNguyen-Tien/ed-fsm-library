@@ -5,8 +5,7 @@
 
 typedef enum
 {
-	NONE = 0,
-	PUSH_TO_QUEUE,
+	PUSH_TO_QUEUE = 0,
 	CALL_IMMEDIATLY
 }obs_handler_type_t;
 
