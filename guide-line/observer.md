@@ -1,70 +1,165 @@
 # observer.h
 
-This file declares the definitions for `struct ObserverNode` and `struct ObserverSubject`.
+This file defines the `ObserverNode` and `ObserverSubject` structures, which implement the *Observer Pattern* to facilitate data exchange between components in the system without introducing direct dependencies.
 
-In this library, the observer pattern is chosen to perform the task of connecting data between components in the system without being dependent on each other.
+## Concepts
+- `Subject`: The source of data transmission. It does not concern itself with whether any nodes have registered to receive its data. A subject can notify multiple nodes that have subscribed to it.
+- `Node`: The entity that receives and processes data. A node can subscribe to multiple subjects over time, as long as those subjects notify using the same data type. However, at any given moment, a node can only be linked to one subject.
 
-There are two concepts here:
-- `Subject`: This is the source of data transmission. It doesn't care whether anyone signed up to receive this data or not. A `Subject` can can notify data to many `Nodes` that register to receive.
-- `Node`: This is where data is received and processed. A `Node` can register to receive data from many `Subjects`.
+## Registration Rules
+- Exclusive Subscription: A node can switch to a different subject at any time, but doing so automatically removes its previous subscription from the current subject.
 
-There are two types of Notify:
-- `PUSH_TO_QUEUE`: The `Handler` of `Node` is pushed to `EventQueue`.
-- `CALL_IMMEDIATLY`: The `Handler` of `Node` is called immediately.
+- No Duplicate Registration: A node cannot register multiple times to the same subject.
 
-## FUNCTION DESCRIPTION
+## Notification Modes
 
-### `void Observer_InitSubject(obs_subject_t* sub, uint8_t sizeOfData);`
+There are two ways in which a subject can notify its registered nodes:
 
-Initializes a subject for observation.
+- `PUSH_TO_QUEUE`: The node’s `Handler` is pushed into the `EventQueue`, allowing it to be processed asynchronously.
+- `CALL_IMMEDIATLY`: The node’s `Handler` is invoked immediately at the time of notification.
 
-- **Parameters:**
-  - `sub`: Pointer to the subject structure to initialize.
-  - `sizeOfData`: Size of data to be stored in the subject.
+## MACRO DESCRIPTION
 
----
-  
-### `void Observer_InitNode(obs_node_t* obs, event_t* ev, obs_handler_type_t type);`
+- **M_OBS_SUBJECT(name)**  
 
-Initializes an observer node with an event and handler type.
+    - This macro defines an `obs_subject_t` instance named `nameSubject`. Use it in the `.c` file where you want to create a subject.  
+    - It should be paired with `M_OBS_SUBJECT_DEF(name)` in the corresponding `.h` file to allow other files to reference the subject.
 
-- **Parameters:**
-  - `obs`: Pointer to the observer node structure to initialize.
-  - `ev`: Pointer to the event structure associated with this observer node.
-  - `type`: Type of event handler.
+    ```c
+    // Define a subject in the .c file  
+    M_OBS_SUBJECT(sensorA)
+    ```
 
 ---
 
-### `bool Observer_AttachNode(obs_subject_t* sub, obs_node_t* node);`
+- **M_OBS_SUBJECT_DEF(name)**  
 
-Attaches an observer node to a subject for receiving notifications.
+    - If you need to access `nameSubject` from another `.c` file, you must declare it as `extern`. This macro simplifies that process for you. Place it in the corresponding `.h` file where `M_OBS_SUBJECT(name)` is defined.  
+    - Make sure that the `name` used in `M_OBS_SUBJECT_DEF(name)` matches the one in `M_OBS_SUBJECT(name)`.
 
-- **Parameters:**
-  - `sub`: Pointer to the subject structure.
-  - `node`: Pointer to the observer node structure to attach.
+    ```c
+    // Declare a subject for external use  
+    M_OBS_SUBJECT_DEF(sensorA)
+    ```
 
-- **Returns:**
-  - `true` if attachment was successful, `false` otherwise.
+---
+- **M_OBS_SUBJECT_INIT(name, type)**  
+
+    - Initializes the subject `nameSubject` with the given data type size.  
+    - Use this macro in the `.c` file where the subject is defined.  
+    - The `type` parameter represents the data structure that will be transmitted through this subject.  
+
+    ```c
+    // Initialize a subject with a specific data type  
+    M_OBS_SUBJECT_INIT(sensorA, sensor_data_t)
+    ```
 
 ---
 
-### `void Observer_DetachNode(obs_subject_t* sub, obs_node_t* node);`
+- **M_OBS_NODE_DEF(name)**  
 
-Detaches an observer node from a subject.
+    - Declares an external observer node `nameNode`.  
+    - Use this macro in a `.h` file when `nameNode` is defined in another `.c` file.  
+    - Ensures that other modules can reference this node without redeclaring it.  
 
-- **Parameters:**
-  - `sub`: Pointer to the subject structure.
-  - `node`: Pointer to the observer node structure to detach.
+    ```c
+    // Declare an observer node  
+    M_OBS_NODE_DEF(sensorA)
+    ```
 
 ---
 
-### `void Observer_Notify(obs_subject_t* sub, void* data);`
+- **M_OBS_NODE(name)**  
 
-Notifies all attached observer nodes about an event.
+    - Defines an observer node `nameNode` and its corresponding event structure.  
+    - Use this macro in the `.c` file where the node is implemented.  
+    - Must be paired with `M_OBS_NODE_DEF(name)` in the corresponding `.h` file to make it accessible externally.  
 
-- **Parameters:**
-  - `sub`: Pointer to the subject structure.
-  - `data`: Pointer to data to pass along with the notification.
+    ```c
+    // Define an observer node in the .c file  
+    M_OBS_NODE(sensorA)
+    ```
+
+---
+
+- **M_OBS_NODE_INIT(name, type, type_enum)**  
+
+    - Initializes the observer node `nameNode` with a specific data type and notification method.  
+    - The `type` parameter specifies the size of the data the node will receive.  
+    - The `type_enum` parameter determines how the node handles notifications (`PUSH_TO_QUEUE` or `CALL_IMMEDIATELY`).  
+    - Ensures at compile time that `type_enum` is a valid `obs_handler_type_t` value.  
+
+    ```c
+    // Initialize an observer node with a specific data type and notification type  
+    M_OBS_NODE_INIT(sensorA, sensor_data_t, PUSH_TO_QUEUE)
+    ```
+
+---
+
+- **M_OBS_NODE_HANDLER(name)**  
+
+    - Declares the event handler function for `nameNode`.  
+    - This function is automatically invoked when the node receives data from a subject.  
+    - The handler function should be implemented separately in the `.c` file.  
+
+    ```c
+    // Define the event handler function for the observer node  
+    M_OBS_NODE_HANDLER(sensorA)  
+    {  
+        sensor_data_t* data = (sensor_data_t*)data;  
+        // Process the received data  
+    }
+    ```
+---
+
+- ### `Observer_AttachNode`
+
+    ```c
+    void Observer_AttachNode(obs_subject_t* sub, obs_node_t* node);
+    ```
+
+    - Attaches a node (node) to a subject (sub), allowing it to receive notifications.
+    - A node can only be linked to one subject at a time. If the node is already attached to another subject, it will be detached first.
+    - If the node is already attached to the given subject, the function does nothing.
+    - Example Usage:
+
+    ```c
+    Observer_AttachNode(&sensorASubject, &displayNode);
+    ```
+---
+
+- ### `Observer_DetachNode`
+
+    ```c
+    void Observer_DetachNode(obs_subject_t* sub, obs_node_t* node);
+    ```
+
+    - Detaches a node (node) from a subject (sub).
+    - After detachment, the node will no longer receive notifications from the subject.
+    - Example Usage:
+
+    ```c
+    Observer_DetachNode(&sensorASubject, &displayNode);
+    ```
+---
+
+- ### `Observer_Notify`
+
+    ```c
+    void Observer_Notify(obs_subject_t* sub, void* data);
+    ```
+
+    - Notifies all attached nodes of the subject (sub), sending them the provided data.
+    - The notification method (PUSH_TO_QUEUE or CALL_IMMEDIATELY) determines how each node processes the received data.
+    - The size of data must match the type specified when initializing the subject.
+    - If no nodes are attached, the function does nothing.
+    - Example Usage:
+
+    ```c
+    sensor_data_t sensorData = { .temperature = 25, .humidity = 60 };
+    Observer_Notify(&sensorASubject, &sensorData);
+    ```
+---
 
 ## EXAMPLE
 

@@ -1,4 +1,4 @@
-Project{name:'test-console'}
+Project{name:'test-strand-machine'}
 BaudRate{Bauds:115200}
 
 Section{name:'Blink'}

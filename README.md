@@ -1,20 +1,20 @@
-# Event-Driven - Finite State Machine Library for ARM Cortex-M Series
+# ED - FSM Framework for ARM Cortex-M Series
 
-Welcome to the event-driven library for ARM Cortex-M microcontrollers. This library is designed to simplify the development of event-driven applications, making your embedded systems more efficient and responsive.
+Welcome to the ED-FSM Framework for ARM Cortex-M microcontrollers. This framework is designed to simplify the development of event-driven applications, making your embedded systems more efficient and responsive.
 
 ## Introduction to Event-Driven Programming
 
-Event-driven programming is a programming paradigm in which the flow of the program is determined by events—such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs or threads. In an event-driven application, there is a main loop that listens for events and dispatches them to appropriate event handlers.
+Event-driven programming is a paradigm where the program's execution flow is dictated by events, such as ADC conversion completion, UART data reception, sensor outputs, and so on. An event-driven system constantly monitors incoming events and dispatches them to the appropriate handlers.
 
    ### Key Concepts
    
-   1. **Event**: An occurrence or action that the system can recognize and respond to. Examples include hardware interrupts, timer overflows, or custom user-defined events.
+   1. **Event**: A detectable occurrence or action that the system can respond to, such as hardware interrupts, timer overflows, or custom user-defined events.
       
-   2. **Event Handler**: A function or method that gets called in response to a specific event. Event handlers contain the logic to process events.
+   2. **Event Handler**: A function or method that executes in response to a specific event, containing the logic needed to process it.
    
-   3. **Event Queue**: A data structure that holds events until they are processed by the event handler. Events are usually processed in the order they arrive (FIFO - First In, First Out).
+   3. **Event Queue**: A data structure that temporarily stores events until they are processed by an event handler. Events are typically handled in the order they arrive (FIFO – First In, First Out).
    
-   4. **Dispatcher**: A component that listens for events in the event queue and calls the appropriate event handler.
+   4. **Dispatcher**: A component that monitors the event queue and invokes the appropriate event handler when an event is detected.
 
    ### How It Works
    
@@ -34,25 +34,31 @@ Event-driven programming is a programming paradigm in which the flow of the prog
 
    ### Advantages
    
-   - **Modularity**: Event-driven systems promote modularity by separating event detection from event handling.
-   - **Responsiveness**: Systems can respond quickly to asynchronous events.
-   - **Scalability**: Easy to add new event types and handlers without affecting existing code.
+   - **Modularity**: Event-driven systems enhance modularity by decoupling event detection from event handling, making the system easier to maintain and extend.
+   - **Responsiveness**: The system can quickly react to asynchronous events, improving real-time performance.
+   - **Scalability**: New event types and handlers can be added with minimal impact on existing code, making the system highly extensible
 
-## Library Features
+## Framework Features
 
-- **Lightweight**: Designed to be minimal in resource usage, suitable for embedded systems with limited memory and processing power.
-- **Flexible**: Supports custom event types and handlers.
-- **Efficient**: Optimized for ARM Cortex-M microcontrollers.
+- **Lightweight**: Optimized for minimal resource usage, making it ideal for embedded systems with limited memory and processing power.
+- **Flexible**: Supports user-defined event types and handlers, allowing customization based on application needs.
+- **Efficient**: Fine-tuned for ARM Cortex-M microcontrollers, ensuring low latency and fast event processing.
 
+## Framework Note
 
-## Library Note
+- **Best suited for bare-metal systems:** This framework is designed for systems running without an operating system (RTOS).
 
-- **This library is best used for bare-metal systems, which are systems that do not use an OS.**
+- **Idle behavior:** When no events are pending, the system executes WAIT FOR INTERRUPT (WFI) to reduce power consumption and improve efficiency.
 
-- **If there are no events to handle, the system will perform WAIT FOR INTERRUPT.**
+- **Non-blocking execution:** The framework follows an asynchronous, non-blocking approach to ensure smooth event processing
 
-- **Let's make everythings Asynchronous & non-Blocking.**
+## Important Considerations
 
-- **For MCU has only 1 core, we only have 1 main loop. Please consider carefully if you intend to use any blocking functions such as HAL_Delay(), while(!UART_Ready()),... or similar because it will affect the EventQueue, delaying the whole system.**
+- This framework follows a cooperative (non-preemptive) execution model, meaning it does not support priorities or context switching. Event handlers are executed sequentially in the order they are received.
 
-<p><em><strong><span style="font-size: 1.5em; text-decoration: underline;">Go to Components folder and take a look at README.md to GET STARTED!!!</span></strong></em></p>
+- Since there is no preemption, each handler must complete its execution before the next event can be processed. Therefore, it is crucial to keep handler execution time minimal to ensure fast response to new events. Long-running operations within handlers may delay event processing and degrade system responsiveness.
+
+- Additionally, for microcontrollers with a single core, the system operates within a single main loop. Blocking functions (e.g., HAL_Delay(), while (!UART_Ready()), etc.) should be avoided, as they can halt event processing and introduce latency. Always consider the impact of such functions on event queue performance and overall system behavior.**
+
+<p><em><strong><span style="font-size: 1.5em;">Refer to the <span style="text-decoration: underline;">guide-line</span> directory for documentation on how to use the framework’s macro functions.</span></strong></em></p>
+

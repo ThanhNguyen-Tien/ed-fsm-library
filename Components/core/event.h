@@ -6,11 +6,20 @@
 
 typedef void (*EventHandler)(void*);
 
+typedef struct EvTimeExecution{
+    uint32_t min_time;
+    uint32_t max_time;
+    uint32_t last_exec_time;
+} event_time_exe_t;
+
 typedef struct Event
 {
+#ifndef NDEBUG
+	event_time_exe_t time;
+#endif
+	EventHandler handler;
 	uint8_t size;
 	uint8_t index;
-	EventHandler handler;
 }event_t;
 
 typedef struct EventQueue

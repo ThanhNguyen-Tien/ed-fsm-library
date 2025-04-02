@@ -1,10 +1,14 @@
 # task.h
 
-This file declares the definitions for `struct Task`.
+This file defines macros for working with `struct Task`.
 
-**In this library, the concept of a Task is understood as a SoftTimer, and it is the event source for the Event Timer among the three Event sources.**
+## Concepts
 
-For ease of use, in this file you only need to pay attention to MACROs.
+- In this framework, a **Task** acts as a **SoftTimer**.
+- It serves as the **Event Timer source** among the three Event sources in the system.
+- This allows periodic event-driven execution without hardware timers.
+
+---
 
 ## MACRO DESCRIPTION
 

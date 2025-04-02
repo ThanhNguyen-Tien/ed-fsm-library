@@ -3,7 +3,6 @@
 
 #include "task.h"
 #include "event.h"
-#include "system.h"
 
 #define LAST_TICK           0xFFFFFFFFFFFFFFFF
 
@@ -16,6 +15,13 @@ typedef struct Engine
 	volatile uint64_t tickCount;
 	uint64_t nextTick;
 }engine_t;
+
+typedef struct MonitorCpu {
+    uint32_t last_cycle;
+    uint32_t total_cycles;
+    uint32_t wfi_cycles;
+    float cpu_usage;
+} monitor_cpu_t;
 
 extern engine_t engine;
 
@@ -30,6 +36,10 @@ void Engine_RegisterTask(task_t *task);
 void Engine_StartTask(task_t *task);
 void Engine_StopTask(task_t *task);
 void Engine_CheckTask();
+
+__attribute__((weak)) void DWT_Init(void);
+__attribute__((weak)) uint32_t DWT_GetCycleCount(void);
+__attribute__((weak)) uint32_t Get_CPU_Freq_Hz(void);
 
 #define ENGINE_INIT 	Engine_Init(evQueue, EVENT_QUEUE_SIZE , tempDataForHandler, MAX_EVENT_SIZE, evPool, EVENT_POOL_SIZE)
 #endif // ENGINE_H

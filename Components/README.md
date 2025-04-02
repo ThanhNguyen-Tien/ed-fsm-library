@@ -60,12 +60,9 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
  
  **Please contact me to get it!!!**
 
-   - **ed-core-m0.a  - 25$ or 500.000 VND**
-   - **ed-core-m3.a  - 25$ or 500.000 VND**
-   - **ed-core-m4-fpuHard.a  - 25$ or 500.000 VND**
-   - **ed-core-m7-fpuHard.a  - 25$ or 500.000 VND**
+   - **ed-core-m(x).a  - 15$ or 300.000 VND**
 
->**You cannot import Library (.a) built for Cortex M3 into a project whose target device is Cortex M4 and similar with other lines. Compiler will notice errors!!!**
+>**You cannot import Library (.a) built for Cortex M3 into a project whose target device is another Corte (such as M0, M4, M7, ...). Compiler will notice errors!!!**
 
 ## CONTACT
   - Facebook: https://www.facebook.com/nguyentien.thanh.1042032/
