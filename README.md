@@ -60,5 +60,5 @@ Event-driven programming is a paradigm where the program's execution flow is dic
 
 - Additionally, for microcontrollers with a single core, the system operates within a single main loop. Blocking functions (e.g., HAL_Delay(), while (!UART_Ready()), etc.) should be avoided, as they can halt event processing and introduce latency. Always consider the impact of such functions on event queue performance and overall system behavior.**
 
-<p><em><strong><span style="font-size: 1.5em;">Refer to the <span style="text-decoration: underline;">guide-line</span> directory for documentation on how to use the framework’s macro functions.</span></strong></em></p>
+<p><em><strong><span style="font-size: 1.5em;">Refer to the Component directory (README.md) to view the GETTING STARTED guide.</span></strong></em></p>
 

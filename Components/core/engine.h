@@ -3,6 +3,7 @@
 
 #include "task.h"
 #include "event.h"
+#include "system.h"
 
 #define LAST_TICK           0xFFFFFFFFFFFFFFFF
 

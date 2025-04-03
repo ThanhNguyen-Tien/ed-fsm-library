@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-- ARM Cortex-Mx (0,3,4,7) MicroController. Here, I use STM32 MicroController Series.
+- ARM Cortex-Mx (0,3,4,7,...) MicroController. This tutorial uses STM32 MicroController Series.
 - STM32Cube IDE (You can also use others like Keil-MDK, IAR,... but the following will focus on instructions with STM32Cube IDE)
 
 ### Installation
@@ -39,7 +39,6 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
    
    - Right click to the Project Name > Properties > C/C++ General > Paths and Symbols
    - At Tab Include/GNU C click "Add.." > Directory: "${ProjDirPath}/Components"
-   - At Tab Library Paths click "Add.." > Directory: "${ProjDirPath}/Components/core"
      
 6. Add Object file to the Linker
 
@@ -52,17 +51,19 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
    - Click Apply and Close
 
 7. Now we successfully import library to project.
-8. In the Compoments folder, there is a test folder. This is project base for testing library, you can build and run it to verify if the library work fine.
+8. In this repo, there is a test folder. This folder contains basic examples to experiment with the mechanisms that the framework provides. You can choose one of them to test by copying that folder into Components folder in your project.
 9. You can see specific operations here: https://youtu.be/9X190WVI7-U
 
 ## NOTE
- **In this repo the library files (.a files) are not included. So you cannot do step 6**
+ **In this repo the library files (.a file) are not included. So you cannot do step 6.**
  
- **Please contact me to get it!!!**
+ **Let's contact me to get .a file!**
 
    - **ed-core-m(x).a  - 15$ or 300.000 VND**
 
 >**You cannot import Library (.a) built for Cortex M3 into a project whose target device is another Corte (such as M0, M4, M7, ...). Compiler will notice errors!!!**
+
+<p><em><strong><span style="font-size: 1.5em;">Refer to the <span style="text-decoration: underline;">guide-line</span> directory for documentation on how to use the framework’s macro functions.</span></strong></em></p>
 
 ## CONTACT
   - Facebook: https://www.facebook.com/nguyentien.thanh.1042032/
