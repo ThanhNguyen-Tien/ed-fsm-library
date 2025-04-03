@@ -1,5 +1,5 @@
-#include <console/driver.h>
-#include <console/controller.h>
+#include "driver.h"
+#include "controller.h"
 
 void ConsoleDrv_ReceiveHeader(uint8_t data)
 {

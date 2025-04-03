@@ -18,5 +18,22 @@ void System_Init()
 	MX_GPIO_Init();
 }
 
+void Cycle_Measurement_Init(void)
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    DWT->CYCCNT = 0;
+}
+
+uint32_t Get_Cycle_Count()
+{
+	return DWT->CYCCNT;
+}
+
+uint32_t Get_CPU_Freq_Hz(void)
+{
+	return HAL_RCC_GetSysClockFreq();
+}
+
 
 

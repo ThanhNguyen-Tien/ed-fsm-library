@@ -1,9 +1,9 @@
-#include <console/controller.h>
+#include "controller.h"
+#include "utils.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <core/utils.h>
 #include <core/engine.h>
 
 console_ctrl_t consoleCtrl;
