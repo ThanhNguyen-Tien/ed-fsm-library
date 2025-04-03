@@ -3,33 +3,65 @@
 
 #include "event.h"
 
-#define ENTER_NEW_STATE			0xFE
+#define ENTER_NEW_STATE         0xFE
 #define EXIT_CURRENT_STATE      0xFF
 
 typedef struct Machine machine_t;
 typedef void (*machineState)(machine_t*);
 
+/**
+ * @brief Structure representing a state machine.
+ */
 typedef struct Machine
 {
-	machineState nextState;
-	machineState currentState;
+    machineState nextState;   ///< Pointer to the next state function.
+    machineState currentState; ///< Pointer to the current state function.
+    event_t executeEvent;      ///< Event associated with state execution.
+    uint8_t nextEvent;         ///< Next event identifier.
+} machine_t;
 
-	event_t executeEvent;
-
-	uint8_t nextEvent;
-}machine_t;
-
+/**
+ * @brief Structure representing a machine event.
+ */
 typedef struct MachineEvent
 {
-	machine_t* mPtr;
-	uint8_t event;
-}machine_event_t;
+    machine_t* mPtr; ///< Pointer to the associated state machine.
+    uint8_t event;   ///< Event identifier.
+} machine_event_t;
 
+/**
+ * @brief Initializes a state machine.
+ * @param m Pointer to the machine structure.
+ */
 void Machine_Init(machine_t *m);
 
+/**
+ * @brief Executes the state machine based on the posted event.
+ * @param msg Pointer to the machine event message.
+ */
 void Machine_Execute(void* msg);
+
+/**
+ * @brief Posts an event to a specific state machine.
+ * @param m Pointer to the machine structure.
+ * @param event Event identifier.
+ */
 void Machine_PostEvent(machine_t* m, uint8_t event);
+
+/**
+ * @brief Starts the state machine from the specified initial state.
+ * @param m Pointer to the machine structure.
+ * @param s Initial state function pointer.
+ */
 void Machine_Start(machine_t* m, machineState s);
+
+/**
+ * @brief Checks if the given event matches the expected transition condition.
+ * @param m Pointer to the machine structure.
+ * @param input Event identifier.
+ * @param state State function pointer to compare.
+ * @return True if the event matches, false otherwise.
+ */
 bool Machine_Check(machine_t* m, uint8_t input, machineState state);
 
 #define MACHINE_DEF(name)\

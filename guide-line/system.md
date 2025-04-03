@@ -16,10 +16,6 @@ This file defines configuration parameters for the `engine` and declares the sys
   - Defines the size of the `tempDataForHandler` array, which temporarily stores fixed event data.  
   - Ensure it is large enough to accommodate the largest `sizeof(dataType)` used in your application.
 
-- **`MAX_STRAND_EVENT_SIZE`**  
-    - Only use this MACRO when you use Strand. It means the same as `MAX_EVENT_SIZE` but only affect to your Strand.
-    - Ensure it is large enough to accommodate the largest `sizeof(dataType)` used in your strand.
-
 ## FUNCTION DESCRIPTION
 
 ### `extern void SystemClock_Config();`

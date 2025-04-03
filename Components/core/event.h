@@ -4,43 +4,71 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/**
+ * @brief Function pointer type for event handlers.
+ */
 typedef void (*EventHandler)(void*);
 
+/**
+ * @brief Structure for tracking event execution time.
+ */
 typedef struct EvTimeExecution{
-    uint32_t min_time;
-    uint32_t max_time;
-    uint32_t last_exec_time;
+    uint32_t min_time;       ///< Minimum execution time.
+    uint32_t max_time;       ///< Maximum execution time.
+    uint32_t last_exec_time; ///< Last recorded execution time.
 } event_time_exe_t;
 
+/**
+ * @brief Structure representing an event.
+ */
 typedef struct Event
 {
 #ifndef NDEBUG
-	event_time_exe_t time;
+    event_time_exe_t time; ///< Execution time tracking (enabled in debug mode).
 #endif
-	EventHandler handler;
-	uint8_t size;
-	uint8_t index;
-}event_t;
+    EventHandler handler; ///< Function pointer to the event handler.
+    uint8_t size;         ///< Size of the event data.
+    uint8_t index;        ///< Event index.
+} event_t;
 
+/**
+ * @brief Event queue structure.
+ */
 typedef struct EventQueue
 {
-	event_t** events;
+    event_t** events;      ///< event pool.
+    uint16_t size;         ///< Total queue size.
+    uint16_t minFree;      ///< Minimum free space recorded.
+    uint8_t* first;        ///< Pointer to the first event in the queue.
+    uint8_t* last;         ///< Pointer to the last event in the queue.
+    uint8_t* inPtr;        ///< Pointer for inserting new events.
+    uint8_t* outPtr;       ///< Pointer for extracting events.
+    uint8_t* dataBuf;      ///< Buffer for event data storage.
+    uint8_t maxEvSize;     ///< Maximum size of an event.
+    uint8_t maxPoolSize;   ///< Maximum event pool size.
+    uint8_t poolSize;      ///< Current pool size.
+} event_queue_t;
 
-	uint16_t size;
-	uint16_t minFree;
-	uint8_t* first;
-	uint8_t* last;
-	uint8_t* inPtr;
-	uint8_t* outPtr;
-
-	uint8_t* dataBuf;
-	uint8_t maxEvSize;
-	uint8_t maxPoolSize;
-	uint8_t poolSize;
-}event_queue_t;
-
+/**
+ * @brief Initializes an event.
+ * @param ev Pointer to the event structure.
+ * @param size Size of the event data.
+ * @param handler Function pointer to the event handler.
+ */
 void Event_Init(event_t* ev, uint8_t size, EventHandler handler);
+
+/**
+ * @brief Posts an event to the queue.
+ * @param index Event index.
+ * @param data Pointer to the event data.
+ * @return True if the event was posted successfully, false otherwise.
+ */
 bool Event_Post(uint8_t index, void* data);
+
+/**
+ * @brief Processes events in the event loop.
+ * @return True if EventQueue has data, false if the EventQueue empty.
+ */
 bool Event_Loop();
 
 #define M_EVENT_DEF(name)\

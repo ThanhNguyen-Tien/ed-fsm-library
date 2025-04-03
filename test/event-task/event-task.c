@@ -53,6 +53,7 @@ M_EVENT_HANDLER(fake)
 
 M_TASK_HANDLER(timeout)
 {
+	LOG_PRINTF("Timeout Task - CPU Usage:%d", (int32_t)(Get_Cpu_Usage()*100));
 	static fake_data_t value = {0};
 	value.fake2 = value.fake1 + 1;
 	value.fake3 = value.fake2 + 1;

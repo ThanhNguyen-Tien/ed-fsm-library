@@ -3,31 +3,71 @@
 
 #include "event.h"
 
+/**
+ * @brief Enumeration for observer handler types.
+ */
 typedef enum
 {
-	PUSH_TO_QUEUE = 0,
-	CALL_IMMEDIATLY
-}obs_handler_type_t;
+    PUSH_TO_QUEUE = 0, ///< Push event data to the EventQueue.
+    CALL_IMMEDIATELY    ///< Call the event handler immediately.
+} obs_handler_type_t;
 
-typedef struct ObserverNode obs_node_t;
-typedef struct ObserverSubject
-{
-	obs_node_t* head;
-	uint8_t sizeOfData;
-}obs_subject_t;
-
+/**
+ * @brief Structure representing an observer node.
+ */
 typedef struct ObserverNode
 {
-	event_t* ev;
-	obs_handler_type_t type;
-	struct ObserverNode* next;
-	struct ObserverSubject* registeredSubject;
-}obs_node_t;
+    event_t* ev;                        ///< Associated event.
+    obs_handler_type_t type;             ///< Handler type.
+    struct ObserverNode* next;           ///< Pointer to the next observer node.
+    struct ObserverSubject* registeredSubject; ///< Pointer to the subject this node is registered to.
+} obs_node_t;
 
+/**
+ * @brief Structure representing an observer subject.
+ */
+typedef struct ObserverSubject
+{
+    obs_node_t* head;   ///< Head of the observer node list.
+    uint8_t sizeOfData; ///< Size of the event data.
+} obs_subject_t;
+
+/**
+ * @brief Initializes an observer subject.
+ * @param sub Pointer to the observer subject structure.
+ * @param sizeOfData Size of the event data.
+ */
 void Observer_InitSubject(obs_subject_t* sub, uint8_t sizeOfData);
+
+/**
+ * @brief Initializes an observer node.
+ * @param obs Pointer to the observer node structure.
+ * @param ev Pointer to the associated event.
+ * @param type Observer handler type.
+ */
 void Observer_InitNode(obs_node_t* obs, event_t* ev, obs_handler_type_t type);
+
+/**
+ * @brief Attaches an observer node to an observer subject.
+ * @param sub Pointer to the observer subject.
+ * @param node Pointer to the observer node.
+ * @return True if successfully attached, false otherwise.
+ */
 bool Observer_AttachNode(obs_subject_t* sub, obs_node_t* node);
+
+/**
+ * @brief Detaches an observer node from an observer subject.
+ * @param sub Pointer to the observer subject.
+ * @param node Pointer to the observer node.
+ * @return True if successfully detached, false otherwise.
+ */
 bool Observer_DetachNode(obs_subject_t* sub, obs_node_t* node);
+
+/**
+ * @brief Notifies all attached observer nodes with event data.
+ * @param sub Pointer to the observer subject.
+ * @param data Pointer to the event data.
+ */
 void Observer_Notify(obs_subject_t* sub, void* data);
 
 #define M_OBS_SUBJECT_DEF(name)\

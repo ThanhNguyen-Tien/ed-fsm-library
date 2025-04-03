@@ -7,19 +7,42 @@
 typedef struct Task task_t;
 typedef void (*TaskHandler)();
 
+/**
+ * @brief Task structure.
+ */
 typedef struct Task
 {
-	task_t* next ;
-	uint32_t interval;
-	uint64_t nextTick;
-	int32_t loop;
-	TaskHandler handler;
-}task_t;
+	task_t* next;            ///< Pointer to the next task in the list.
+	uint32_t interval;       ///< Time interval for the task.
+	uint64_t nextTick;       ///< Next tick time for the task.
+	int32_t loop;            ///< Loop count for the task, -1 for infinite.
+	TaskHandler handler;     ///< Handler function for the task.
+} task_t;
 
+/**
+ * @brief Handles task's information. Only used in engine.
+ */
 void Task_Run();
 
+/**
+ * @brief Starts a task with a given interval and loop count.
+ * @param task Pointer to the task structure.
+ * @param interval Interval for task execution (in milliseconds).
+ * @param loop Number of times the task should run, -1 for infinite.
+ */
 void Task_Start(task_t* task, uint32_t interval, int32_t loop);
+
+/**
+ * @brief Stops a running task.
+ * @param task Pointer to the task structure.
+ */
 void Task_Stop(task_t* task);
+
+/**
+ * @brief Checks if a task is currently running.
+ * @param task Pointer to the task structure.
+ * @return True if the task is running, false otherwise.
+ */
 bool Task_IsRunning(task_t* task);
 
 #define M_TASK_DEF(name)\
