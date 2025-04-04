@@ -1,12 +1,11 @@
 #include "controller.h"
 #include "lcd.h"
 #include <string.h>
-#include <stdio.h>
 
 void Lcd_Ctrl_Init()
 {
 	Lcd_Drv_Init();
-	Strand_Delay(&lcd_drvStrand, 200);
+	Strand_Delay(&lcd_drvStrand, 1000);
 	Lcd_Ctrl_Init4Bit();
 	Lcd_Ctrl_Clear();
 }
@@ -53,7 +52,7 @@ void Lcd_Ctrl_Printf(char* data)
 	len = strlen(data);
 	for (i=0; i<len; i++)
 	{
-		if(data[i] > 0) putchar(data[i]);
-		else putchar(' ');
+		if(data[i] > 0) Lcd_Ctrl_Putchar(data[i]);
+		else Lcd_Ctrl_Putchar(' ');
 	}
 }

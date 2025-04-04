@@ -70,6 +70,12 @@ M_EVENT_HANDLER(send)
 {
 	lcd_data_t* payload = (lcd_data_t*)data;
 	data_ = (*payload);
-	if(data_.type == SEND_CMD) SM_POST(lcd_drv, LCD_DRV_SEND_CMD);
-	else SM_POST(lcd_drv, LCD_DRV_SEND_DATA);
+	if(data_.type == SEND_CMD)
+	{
+		SM_EXECUTE(lcd_drv, LCD_DRV_SEND_CMD);
+	}
+	else
+	{
+		SM_EXECUTE(lcd_drv, LCD_DRV_SEND_DATA);
+	}
 }

@@ -24,7 +24,6 @@ typedef struct LcdData
 }lcd_data_t;
 
 enum LCD_EVENT {LCD_DRV_TIMEOUT, LCD_DRV_SEND_CMD, LCD_DRV_SEND_DATA};
-//enum class Command{};
 enum LCD_TYPE {Command = 0, Data};
 
 MACHINE_DEF(lcd_drv)

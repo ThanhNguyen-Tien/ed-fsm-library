@@ -12,6 +12,6 @@ void Lcd_Ctrl_Home();							// cursor goto home position
 void Lcd_Ctrl_Gotoxy(uint8_t x, uint8_t y);	// move cursor to x,y
 void Lcd_Ctrl_Clear();
 void Lcd_Ctrl_Putchar(char data);
-void Lcd_Ctrl_printf(char* data);
+void Lcd_Ctrl_Printf(char* data);
 
 #endif /* LCD1602_Lcd_Ctrl_H_ */

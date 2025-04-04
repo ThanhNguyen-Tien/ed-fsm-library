@@ -1,5 +1,5 @@
 #include <core/engine.h>
-#include <test/strand-machine/controller.h>
+#include "test.h"
 
 int main()
 {
@@ -10,7 +10,7 @@ int main()
 	ENGINE_INIT;
 
 	//Init Components
-	Lcd_Ctrl_Init();
+	Test_Init();
 
 	Engine_Run();
 	return 0;
