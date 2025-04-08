@@ -72,24 +72,24 @@ void Test_Init()
 
 M_TASK_HANDLER(subA_notify)
 {
-	static float data = 10.0f;
-	Observer_Notify(&a_Subject, &data);
-	data+= 0.1f;
-	if(data > 10.5f)data = 10.0f;
+	static float fake = 10.0f;
+	Observer_Notify(&a_Subject, &fake);
+	fake+= 0.1f;
+	if(fake > 10.5f)fake = 10.0f;
 }
 
 M_TASK_HANDLER(subB_notify)
 {
-	static uint16_t data = 50;
-	Observer_Notify(&b_Subject, &data);
-	data+= 1;
-	if(data > 55)data = 50;
+	static uint16_t fake = 50;
+	Observer_Notify(&b_Subject, &fake);
+	fake+= 1;
+	if(fake > 55)fake = 50;
 }
 
 M_TASK_HANDLER(subC_notify)
 {
-	static float data = 100.0f;
-	Observer_Notify(&c_Subject, &data);
-	data+= 0.1f;
-	if(data > 100.5f)data = 100.0f;
+	static float fake = 100.0f;
+	Observer_Notify(&c_Subject, &fake);
+	fake+= 0.1f;
+	if(fake > 100.5f)fake = 100.0f;
 }
