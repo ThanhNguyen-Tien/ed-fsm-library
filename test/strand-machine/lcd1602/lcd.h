@@ -8,7 +8,6 @@
 #include <core/task.h>
 #include "lcd-define.h"
 
-M_TASK_DEF(timeout)
 M_EVENT_DEF(send)
 M_STRAND_DEF(lcd_drv)
 
@@ -23,7 +22,7 @@ typedef struct LcdData
 	uint8_t data;
 }lcd_data_t;
 
-enum LCD_EVENT {LCD_DRV_TIMEOUT, LCD_DRV_SEND_CMD, LCD_DRV_SEND_DATA};
+enum LCD_EVENT {LCD_DRV_SEND_CMD = 0, LCD_DRV_SEND_DATA};
 enum LCD_TYPE {Command = 0, Data};
 
 MACHINE_DEF(lcd_drv)

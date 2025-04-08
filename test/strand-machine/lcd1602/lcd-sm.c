@@ -6,7 +6,7 @@ extern lcd_data_t data_;
 
 STATE_BODY(Lcd_Drv_Ready)
 {
-	ENTER()
+	ENTER_()
 	{
 		LOG_PRINT("[LCD_DRV]: Ready");
 		Strand_Done(&lcd_drvStrand);
@@ -19,7 +19,7 @@ STATE_BODY(Lcd_Drv_Ready)
 	{
 		HAL_GPIO_WritePin(RS_PORT, RS_PIN, GPIO_PIN_SET);
 	}
-	EXIT()
+	EXIT_()
 	{
 		Lcd_Drv_Write2Nib(data_.data);
 	}
@@ -27,11 +27,11 @@ STATE_BODY(Lcd_Drv_Ready)
 
 STATE_BODY(Lcd_Drv_Busy)
 {
-	ENTER()
+	ENTER_()
 	{
 		LOG_PRINT("[LCD_DRV]: Busy");
-		M_TASK_START(timeout, 2, 1);
+		SM_TIMEOUT_START(lcd_drv, 5, 1);
 	}
-	TRANSITION_(LCD_DRV_TIMEOUT, Lcd_Drv_Ready){}
+	TRANSITION_(MACHINE_TIMEOUT_EVENT, Lcd_Drv_Ready){}
 }
 

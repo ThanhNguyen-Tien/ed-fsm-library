@@ -5,7 +5,7 @@
 void Lcd_Ctrl_Init()
 {
 	Lcd_Drv_Init();
-	Strand_Delay(&lcd_drvStrand, 1000);
+	Strand_Delay(&lcd_drvStrand, 500);
 	Lcd_Ctrl_Init4Bit();
 	Lcd_Ctrl_Clear();
 }

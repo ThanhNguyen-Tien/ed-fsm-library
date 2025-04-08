@@ -18,7 +18,6 @@ void Lcd_Drv_Init()
 	HAL_GPIO_WritePin(D6_PORT, D6_PIN, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(D7_PORT, D7_PIN, GPIO_PIN_RESET);
 
-	M_TASK_INIT(timeout);
 	M_EVENT_INIT(send, sizeof(lcd_data_t));
 	M_STRAND_INIT(lcd_drv);
 
@@ -59,11 +58,6 @@ void Lcd_Drv_Send(uint8_t type, uint8_t data)
 	lcd_data_t tmp;
 	tmp.data = data; tmp.type = type;
 	Strand_Post(&lcd_drvStrand, &sendEvent, NULL, &tmp);
-}
-
-M_TASK_HANDLER(timeout)
-{
-	SM_POST(lcd_drv, LCD_DRV_TIMEOUT);
 }
 
 M_EVENT_HANDLER(send)

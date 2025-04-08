@@ -1,8 +1,8 @@
 #include "event-task.h"
 #include <console/log.h>
 
-int32_t interval = 1000;
-int32_t repeat = 10;
+int32_t interval = 1;
+int32_t repeat = 1;
 
 U_ACTION_HANDLER(sync)
 {
