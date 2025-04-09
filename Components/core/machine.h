@@ -4,37 +4,119 @@
 #include "event.h"
 #include "task.h"
 
-#define MACHINE_TIMEOUT_EVENT	0xFD
-#define ENTER_NEW_STATE			0xFE
-#define EXIT_CURRENT_STATE      0xFF
+// Special event codes for state machine transitions
+#define MACHINE_TIMEOUT_EVENT	0xFD /**< Event code for timeout events. */
+#define ENTER_NEW_STATE			0xFE /**< Event code for entering a new state. */
+#define EXIT_CURRENT_STATE      0xFF /**< Event code for exiting the current state. */
 
+/**
+ * @brief Forward declaration of the Machine structure.
+ */
 typedef struct Machine machine_t;
+
+/**
+ * @brief Function pointer type for state functions.
+ *
+ * Each state function takes a pointer to the machine as its parameter.
+ */
 typedef void (*machineState)(machine_t*);
 
+/**
+ * @brief Structure representing a state machine.
+ *
+ * This structure holds the current and next states, a timer for managing timeouts,
+ * an event for execution, and the next event to be processed.
+ */
 typedef struct Machine
 {
-	machineState nextState;
-	machineState currentState;
+    machineState nextState;      /**< Pointer to the next state function. */
+    machineState currentState;   /**< Pointer to the current state function. */
 
-	task_t timer;
-	event_t executeEvent;
+    task_t timer;                /**< Timer task for managing timeouts. */
+    event_t executeEvent;        /**< Event used to trigger state execution. */
 
-	uint8_t nextEvent;
-}machine_t;
+    uint8_t nextEvent;           /**< Code of the next event to be processed. */
+} machine_t;
 
+/**
+ * @brief Structure representing a machine event.
+ *
+ * This structure is used to pass events to the state machine for processing.
+ */
 typedef struct MachineEvent
 {
-	machine_t* mPtr;
-	uint8_t event;
-}machine_event_t;
+    machine_t* mPtr; /**< Pointer to the machine associated with the event. */
+    uint8_t event;   /**< Event code to be processed by the machine. */
+} machine_event_t;
 
+/**
+ * @brief Initializes a state machine.
+ *
+ * This function sets up the state machine, preparing it for operation.
+ *
+ * @param m Pointer to the machine to be initialized.
+ */
 void Machine_Init(machine_t *m);
+
+/**
+ * @brief Executes the current state of the machine.
+ *
+ * This function processes the given event and executes the appropriate state function.
+ *
+ * @param msg Pointer to the machine event to be processed.
+ */
 void Machine_Execute(void* msg);
 
+/**
+ * @brief Posts an event to the state machine.
+ *
+ * This function queues an event for the machine to process.
+ *
+ * @param m Pointer to the machine.
+ * @param event Event code to be posted.
+ */
 void Machine_PostEvent(machine_t* m, uint8_t event);
+
+/**
+ * @brief Starts the state machine with an initial state.
+ *
+ * This function sets the initial state of the machine and begins its operation.
+ *
+ * @param m Pointer to the machine.
+ * @param s Pointer to the initial state function.
+ */
 void Machine_Start(machine_t* m, machineState s);
+
+/**
+ * @brief Starts a timer for the state machine.
+ *
+ * This function sets up a timer for the machine, which can be used for timeout events.
+ *
+ * @param m Pointer to the machine.
+ * @param interval Timer interval in milliseconds.
+ * @param loop Number of times the timer should loop (-1 for infinite).
+ */
 void Machine_StartTimer(machine_t* m, uint32_t interval, int32_t loop);
+
+/**
+ * @brief Stops the timer for the state machine.
+ *
+ * This function stops the timer associated with the machine.
+ *
+ * @param m Pointer to the machine.
+ */
 void Machine_StopTimer(machine_t* m);
+
+/**
+ * @brief Checks if a specific event matches the current state.
+ *
+ * This function verifies if the given event and state match the machine's current state.
+ *
+ * @param m Pointer to the machine.
+ * @param input Event code to check.
+ * @param state Pointer to the state function to check.
+ * @return `true` if the event and state match, `false` otherwise.
+ */
 bool Machine_Check(machine_t* m, uint8_t input, machineState state);
 
 #define MACHINE_DEF(name)\

@@ -74,12 +74,12 @@ This file defines macros for working with `struct Task`.
 - **M_TASK_HANDLER(name)**
 
     - This is the event handler for `nameTask`. When a task expires, the corresponding handler is called.
-
-    **NOTE: Do NOT Start/Stop other M_TASK in M_TASK_HANDLER**
+    - In `Task` structure, there is field `void* data` . This field is typically used to store context information associated with the task. It is designed for some special cases (such as `strand`, `machine`), so normally when you use M_TASK, you can either ignore it or use UNUSED MACRO.
 
     ```c
     M_EVENT_HANDLER(blink)  // Task Handler
     {
+        UNUSED(data);
         //TODO: Toggle GPIO Pin
     }
     ```
@@ -106,10 +106,6 @@ This file defines macros for working with `struct Task`.
     M_TASK_HANDLER(blink)
     {
         //TODO: Doing somethings
-        /*NOTE: Do NOT start/stop other tasks here
-            M_TASK_START(readSensor)    : Do NOT do that!
-            M_TASK_STOP(readSensor)     : Do NOT do that!
-        */
     }
 
     //readEncoderTask Handler
