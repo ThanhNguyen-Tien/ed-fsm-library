@@ -32,6 +32,9 @@ STATE_BODY(Lcd_Drv_Busy)
 		LOG_PRINT("[LCD_DRV]: Busy");
 		SM_TIMEOUT_START(lcd_drv, 5, 1);
 	}
-	TRANSITION_(MACHINE_TIMEOUT_EVENT, Lcd_Drv_Ready){}
+	TIMEOUT_()
+	{
+		SM_SWITCH(Lcd_Drv_Ready);
+	}
 }
 

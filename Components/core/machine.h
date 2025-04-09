@@ -70,6 +70,7 @@ bool Machine_Check(machine_t* m, uint8_t input, machineState state);
 
 #define ENTER_() if (m->nextEvent == ENTER_NEW_STATE)
 #define EXIT_() if (m->nextEvent == EXIT_CURRENT_STATE)
+#define TIMEOUT_() if (m->nextEvent == MACHINE_TIMEOUT_EVENT)
 #define SM_SWITCH(state) m->nextState = &state
 #define SM_START(name, state)\
     Machine_Init(&name##Machine);\
