@@ -55,13 +55,13 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
 9. You can see specific operations here: https://youtu.be/9X190WVI7-U
 
 ## NOTE
- **In this repo the library files (.a file) are not included. So you cannot do step 6.**
+ **In this repo the library files (.a file) for almost cortex Mx are not included. So you cannot do step 6. There is only ed-core-m3-debug.a for cortex M3 is free, you can use it for free trial**
  
  **Let's contact me to get .a file!**
 
    - **ed-core-m(x).a  - 15$ or 300.000 VND**
 
->**You cannot import Library (.a) built for Cortex M3 into a project whose target device is another Corte (such as M0, M4, M7, ...). Compiler will notice errors!!!**
+>**You cannot import Library (.a) built for Cortex M3 into a project whose target device is another Corte (such as M0, M1, M23, M33, M4, M7, ...). Compiler will notice errors!!!**
 
 <p><em><strong><span style="font-size: 1.5em;">Refer to the <span style="text-decoration: underline;">guide-line</span> directory for documentation on how to use the framework’s macro functions.</span></strong></em></p>
 
