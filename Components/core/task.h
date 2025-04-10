@@ -16,6 +16,8 @@ typedef struct Task task_t;
  * This structure holds information about a task, including its execution interval,
  * the next tick for execution, the number of loops, the handler function, and any
  * associated user data.
+ * @note task_t acts as a softtimer, which means it is used for timing tasks \
+ * (e.g. \sending data every 1s, reading motor speed every 10ms, etc...)
  */
 typedef struct Task
 {

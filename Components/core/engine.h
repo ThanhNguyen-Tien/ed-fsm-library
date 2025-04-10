@@ -10,7 +10,7 @@
 /**
  * @brief Structure representing the Engine.
  *
- * The Engine is responsible for managing tasks, events, and the system tick.
+ * The Engine is responsible for managing events, and the system tick.
  * It provides functionality for task registration, event handling, and CPU usage monitoring.
  */
 typedef struct Engine
@@ -28,7 +28,7 @@ typedef struct Engine
 /**
  * @brief Global instance of the Engine.
  *
- * This instance is used throughout the system to manage tasks and events.
+ * This instance is used throughout the system to manage and events.
  */
 extern engine_t engine;
 
@@ -51,7 +51,7 @@ void Engine_Init(uint8_t* buf, uint16_t size,
 /**
  * @brief Runs the Engine.
  *
- * This function starts the main loop of the Engine, processing tasks and events.
+ * This function starts the Engine, processing events.
  */
 void Engine_Run();
 
@@ -86,10 +86,10 @@ float Get_Cpu_Usage();
 void Engine_RegisterTask(task_t *task);
 
 /**
- * @brief Checks and executes tasks.
+ * @brief Periodically updates the system tick and check the task with the nearest deadline.
  *
- * This function iterates through the list of tasks and executes any tasks
- * that are due for execution based on the current tick count.
+ * This function is called periodically (e.g., every 1ms) to update the tick count,
+ * check for the nearest task deadline, and post the appropriate event.
  */
 void Engine_CheckTask();
 
