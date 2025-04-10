@@ -18,9 +18,9 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
    -  Config Clock Configuration to suit with your hardware
    -  At System Core/NVIC, go to Code Generation tab and disable "Generate IRQ Handler" for Systick timer
    -  If you use console App (optional)
-      - Enable UASRT2 and its global interrupt
-      - At NVIC/Code Generation tab disable "Generate IRQ Handler" for USART2 interrupt
-      - At ProjectManager/Advanced Settings, choose LL for USART2
+      - Enable UASRT and its global interrupt
+      - At NVIC/Code Generation tab disable "Generate IRQ Handler" for USART module
+      - At ProjectManager/Advanced Settings, choose LL for USART module
         
    -  In Project Manager Tab
      
@@ -30,12 +30,12 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
        
     -  Generate Project
 
-3. Copy the Components folder from repo to your project
+3. Copy the `Components` folder from repo to your project
 4. Include this folder to Build progress
    
-   - Right click to the Components folder > Resource Configuration > Exclude from Build => unSelect all
+   - Right click to the `Components` folder > Resource Configuration > Exclude from Build => unSelect all
      
-5. Add path to the linker
+5. Add path for `Components`
    
    - Right click to the Project Name > Properties > C/C++ General > Paths and Symbols
    - At Tab Include/GNU C click "Add.." > Directory: "${ProjDirPath}/Components"
