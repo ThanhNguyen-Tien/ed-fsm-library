@@ -77,6 +77,18 @@ void Engine_Delay(uint32_t t);
 float Get_Cpu_Usage();
 
 /**
+ * @brief Retrieves the minimum free space available in the event queue.
+ * 
+ * This function returns the smallest amount of free space that has been
+ * available in the event queue since the system started. It can be used
+ * to monitor the event queue usage and ensure that it does not exceed
+ * its capacity.
+ * 
+ * @return uint16_t The minimum free space in the event queue.
+ */
+uint16_t Get_Min_Free_Ev_Queue(); /**< Returns the minimum free space in the event queue. */
+
+/**
  * @brief Registers a task with the Engine.
  *
  * This function adds a task to the Engine's task list, allowing it to be executed.
