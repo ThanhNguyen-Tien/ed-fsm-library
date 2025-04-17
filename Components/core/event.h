@@ -48,7 +48,7 @@ typedef struct Event {
  * removal, and processing of events.
  */
 typedef struct EventQueue {
-    event_t** events;        /**< Array of pointers to events in the queue. */
+    event_t** events;        /**< events pool */
 
     uint16_t size;           /**< Total size of the event queue. */
     uint16_t minFree;        /**< Minimum free space in the queue (for monitoring). */

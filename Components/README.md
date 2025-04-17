@@ -52,7 +52,7 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
 
 7. Now we successfully import library to project.
 8. In this repo, there is a test folder. This folder contains basic examples to experiment with the mechanisms that the framework provides. You can choose one of them to test by copying that folder into Components folder in your project.
-9. You can see specific operations here: https://youtu.be/9X190WVI7-U
+9. You can see specific operations here: https://youtu.be/eHAfCoUB478
 
 ## NOTE
  **In this repo the library files (.a file) for almost cortex Mx are not included. So you cannot do step 6. There is only ed-core-m3-debug.a for cortex M3 is free, you can use it for free trial**
