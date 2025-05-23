@@ -33,6 +33,20 @@ typedef struct Engine
 extern engine_t engine;
 
 /**
+ * @brief Periodically updates the system tick and check the task with the nearest deadline.
+ *
+ * This function is called periodically (e.g., every 1ms) to update the tick count,
+ * check for the nearest task deadline, and post the appropriate event.
+ */
+static inline void Engine_CheckTask()
+{
+	if(++engine.tickCount >= engine.nextTick)
+	{
+		Event_Post(engine.checkTask.index, NULL);
+	}
+}
+
+/**
  * @brief Initializes the Engine.
  *
  * This function sets up the Engine with the specified buffers and event pool.
@@ -96,14 +110,6 @@ uint16_t Get_Min_Free_Ev_Queue(); /**< Returns the minimum free space in the eve
  * @param task Pointer to the task to be registered.
  */
 void Engine_RegisterTask(task_t *task);
-
-/**
- * @brief Periodically updates the system tick and check the task with the nearest deadline.
- *
- * This function is called periodically (e.g., every 1ms) to update the tick count,
- * check for the nearest task deadline, and post the appropriate event.
- */
-void Engine_CheckTask();
 
 #define ENGINE_INIT 	Engine_Init(evQueue, EVENT_QUEUE_SIZE , tempDataForHandler, MAX_EVENT_SIZE, evPool, EVENT_POOL_SIZE)
 #endif // ENGINE_H

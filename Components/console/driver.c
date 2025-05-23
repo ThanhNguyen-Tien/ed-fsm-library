@@ -26,7 +26,7 @@ void ConsoleDrv_Init()
 bool ConsoleDrv_SendPacket(uint16_t type, uint8_t length, const uint8_t* data)
 {
     uint8_t checksum = 0;
-    if (Queue_CheckNumOfFree(&ConsoleDrv.txQueue) < length + 5) return false;
+    if (Queue_CheckNumOfFree(&ConsoleDrv.txQueue) < length + 6) return false;
     Queue_Push(&ConsoleDrv.txQueue, HEADER_INDICATOR);
     checksum += (uint8_t) HEADER_INDICATOR;
     Queue_Push(&ConsoleDrv.txQueue, length);

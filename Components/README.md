@@ -59,11 +59,13 @@ git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
  
  **Let's contact me to get .a file!**
 
-   - **ed-core-m(x).a  - 15$ or 300.000 VND**
-
 >**You cannot import Library (.a) built for Cortex M3 into a project whose target device is another Corte (such as M0, M1, M23, M33, M4, M7, ...). Compiler will notice errors!!!**
 
 <p><em><strong><span style="font-size: 1.5em;">Refer to the <span style="text-decoration: underline;">guide-line</span> directory for documentation on how to use the framework’s macro functions.</span></strong></em></p>
+
+## DONATE
+  - `102002286610` VIETTINBANK - NGUYEN TIEN THANH
+  - `204341119001` HSBC - NGUYEN TIEN THANH
 
 ## CONTACT
   - Facebook: https://www.facebook.com/nguyentien.thanh.1042032/
