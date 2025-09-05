@@ -12,8 +12,8 @@ M_TASK(ConsoleCtrl_Plot)
 void ConsoleCtrl_Init()
 {
 	ConsoleDrv_Init();
-	M_TASK_INIT(ConsoleCtrl_Plot);
-	M_TASK_START(ConsoleCtrl_Plot, TIME_PLOT);
+	M_TASK_INIT(ConsoleCtrl_PlotTask);
+	M_TASK_START(ConsoleCtrl_PlotTask, TIME_PLOT);
 }
 
 void ConsoleCtrl_Print(const char* text)

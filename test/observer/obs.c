@@ -59,13 +59,13 @@ void Test_Init()
 	Node_B_Init();	// uint16_t
 	Node_C_Init();	// float
 
-	M_TASK_INIT(subA_notify);
-	M_TASK_INIT(subB_notify);
-	M_TASK_INIT(subC_notify);
+	M_TASK_INIT(subA_notifyTask);
+	M_TASK_INIT(subB_notifyTask);
+	M_TASK_INIT(subC_notifyTask);
 
-	M_TASK_START(subA_notify, 2000);
-	M_TASK_START(subB_notify, 2000);
-	M_TASK_START(subC_notify, 2000);
+	M_TASK_START(subA_notifyTask, 2000);
+	M_TASK_START(subB_notifyTask, 2000);
+	M_TASK_START(subC_notifyTask, 2000);
 
 	LOG_PRINT("TEST OBSERVERS");
 }

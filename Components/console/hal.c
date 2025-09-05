@@ -22,7 +22,7 @@ CONSOLE_ISR_HANDLER()
 	if(LL_USART_IsActiveFlag_RXNE(CONSOLE_PORT))
 	{
 		uint8_t c = LL_USART_ReceiveData8(CONSOLE_PORT);
-		M_EVENT_POST(ConsoleDrv_Receive, c);
+		M_EVENT_POST(ConsoleDrv_ReceiveEvent, c);
 	}
 	else	// Error
 	{

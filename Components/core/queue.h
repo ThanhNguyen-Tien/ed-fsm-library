@@ -1,154 +1,151 @@
 #ifndef CORE_QUEUE_H_
 #define CORE_QUEUE_H_
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
-#include <assert.h>
+#include "event.h"
 
 /**
  * @brief Structure representing a circular queue.
  *
- * This structure is used to manage a circular queue, which allows efficient
- * insertion and removal of elements in a fixed-size buffer.
+ * Contains pointers and size information for managing a circular buffer.
  */
 typedef struct Queue
 {
-    uint16_t size;       /**< Total size of the queue in bytes. */
-    uint8_t* first;      /**< Pointer to the first element in the queue buffer. */
-    uint8_t* last;       /**< Pointer to the last element in the queue buffer. */
-    uint8_t* inPtr;      /**< Pointer to the current insertion position in the queue. */
-    uint8_t* outPtr;     /**< Pointer to the current removal position in the queue. */
+    uint16_t size;      ///< Total size of the queue buffer.
+    uint8_t *first;     ///< Pointer to the first element in the buffer.
+    uint8_t *last;      ///< Pointer to one past the last element in the buffer.
+    uint8_t *inPtr;     ///< Pointer to the next insertion position.
+    uint8_t *outPtr;    ///< Pointer to the next removal position.
 } queue_t;
 
 /**
- * @brief Initializes a circular queue.
+ * @brief Initializes the queue with a buffer and size.
  *
- * This function sets up the queue structure with the specified buffer and size.
- *
- * @param q Pointer to the queue structure to be initialized.
- * @param buf Pointer to the buffer to be used for the queue.
- * @param size Size of the buffer in bytes.
- */
-static inline void Queue_Init(queue_t* q, uint8_t* buf, uint16_t size)
-{
-	assert(q != NULL);
-
-	q->first = buf;
-	q->size = size;
-	q->last = q->first + size;
-	q->inPtr = q->first;
-	q->outPtr = q->first;
-}
-
-/**
- * @brief Resets a circular queue.
- *
- * This function clears the queue, making it empty and ready for reuse.
- *
- * @param q Pointer to the queue structure to be reset.
- */
-static inline void Queue_Reset(queue_t* q)
-{
-	assert(q != NULL);
-
-	q->inPtr = q->first;
-	q->outPtr = q->first;
-}
-
-/**
- * @brief Checks the number of free bytes in the queue.
- *
- * This function calculates the amount of unused space in the queue.
+ * Sets up the queue structure to use the provided buffer and size.
  *
  * @param q Pointer to the queue structure.
- * @return The number of free bytes in the queue.
+ * @param buf Pointer to the buffer to use for the queue.
+ * @param size Size of the buffer.
  */
-static inline uint16_t Queue_CheckNumOfFree(queue_t* q)
+static inline void Queue_Init(queue_t *q, uint8_t *buf, uint16_t size)
 {
-	assert(q != NULL);
+    ASSERT(q != NULL);
 
-	uint16_t ret = q->size + q->outPtr - q->inPtr;
-	if (ret > q->size) ret -= q->size;
-	return (ret - 1);
+    q->first = buf;             // Set the start of the buffer.
+    q->size = size;             // Set the buffer size.
+    q->last = q->first + size;  // Set the end of the buffer.
+    q->inPtr = q->first;        // Initialize insertion pointer.
+    q->outPtr = q->first;       // Initialize removal pointer.
+}
+
+/**
+ * @brief Resets the queue pointers to the start of the buffer.
+ *
+ * Sets both the insertion and removal pointers to the start of the buffer.
+ *
+ * @param q Pointer to the queue structure.
+ */
+static inline void Queue_Reset(queue_t *q)
+{
+    ASSERT(q != NULL);
+
+    q->inPtr = q->first;        // Reset insertion pointer.
+    q->outPtr = q->first;       // Reset removal pointer.
+}
+
+/**
+ * @brief Returns the number of free slots available in the queue.
+ *
+ * Calculates the available space in the queue for new elements.
+ *
+ * @param q Pointer to the queue structure.
+ * @return Number of free slots in the queue.
+ */
+static inline uint16_t Queue_CheckNumOfFree(queue_t *q)
+{
+    ASSERT(q != NULL);
+
+    uint16_t ret = q->size + q->outPtr - q->inPtr;
+    if (ret > q->size)
+        ret -= q->size;
+    return (ret - 1);           // Subtract 1 to avoid ambiguity between full and empty.
 }
 
 /**
  * @brief Checks if the queue is empty.
  *
- * This function determines whether the queue contains any elements.
- *
  * @param q Pointer to the queue structure.
- * @return `true` if the queue is empty, `false` otherwise.
+ * @return true if the queue is empty, false otherwise.
  */
-static inline bool Queue_IsEmpty(queue_t* q)
+static inline bool Queue_IsEmpty(queue_t *q)
 {
-	assert(q != NULL);
+    ASSERT(q != NULL);
 
-	return (q->inPtr == q->outPtr);
+    return (q->inPtr == q->outPtr);
 }
 
 /**
  * @brief Checks if the queue is full.
  *
- * This function determines whether the queue has reached its maximum capacity.
- *
  * @param q Pointer to the queue structure.
- * @return `true` if the queue is full, `false` otherwise.
+ * @return true if the queue is full, false otherwise.
  */
-static inline bool Queue_IsFull(queue_t* q)
+static inline bool Queue_IsFull(queue_t *q)
 {
-	assert(q != NULL);
+    ASSERT(q != NULL);
 
-	return ((q->inPtr + 1 == q->outPtr) || (q->inPtr == q->last - 1 && q->outPtr == q->first));
+    return ((q->inPtr + 1 == q->outPtr)
+            || (q->inPtr == q->last - 1 && q->outPtr == q->first));
 }
 
 /**
- * @brief Removes an element from the queue.
+ * @brief Pushes a value into the queue.
  *
- * This function retrieves and removes the oldest element from the queue.
+ * Adds a value to the queue if there is space available.
  *
  * @param q Pointer to the queue structure.
- * @param val Pointer to a variable where the removed value will be stored.
- * @return `true` if an element was successfully removed, `false` if the queue is empty.
+ * @param val Value to push into the queue.
+ * @return true if successful, false if the queue is full.
  */
-static inline bool Queue_Pop(queue_t* q, uint8_t* val)
+static inline bool Queue_Push(queue_t *q, uint8_t val)
 {
-	assert(q != NULL);
-	assert(val != NULL);
+    ASSERT(q != NULL);
 
-	if (q->outPtr != q->inPtr)
-	{
-		*val = *(q->outPtr);
-		q->outPtr++;
-		if (q->outPtr == q->last) q->outPtr = q->first;
-		return true;
-	}
-    return false;
+    uint8_t *next = q->inPtr + 1;
+    if (next == q->last)
+        next = q->first;
+    if (next != q->outPtr)
+    {
+        *(q->inPtr) = val;      // Store value at insertion pointer.
+        q->inPtr = next;        // Advance insertion pointer.
+        return true;
+    } else
+        return false;           // Queue is full.
 }
 
 /**
- * @brief Adds an element to the queue.
+ * @brief Pops a value from the queue.
  *
- * This function inserts a new element into the queue.
+ * Removes a value from the queue if it is not empty.
  *
  * @param q Pointer to the queue structure.
- * @param val The value to be added to the queue.
- * @return `true` if the element was successfully added, `false` if the queue is full.
+ * @param val Pointer to store the popped value.
+ * @return true if successful, false if the queue is empty.
  */
-static inline bool Queue_Push(queue_t* q, uint8_t val)
+static inline bool Queue_Pop(queue_t *q, uint8_t *val)
 {
-	assert(q != NULL);
+    ASSERT(q != NULL);
+    ASSERT(val != NULL);
 
-	uint8_t* next = q->inPtr + 1;
-	if (next == q->last) next = q->first;
-	if (next != q->outPtr)
-	{
-		*(q->inPtr) = val;
-		q->inPtr = next;
-		return true;
-	}
-	else return false;
+    if (q->outPtr != q->inPtr)
+    {
+        *val = *(q->outPtr);    // Retrieve value at removal pointer.
+        q->outPtr++;            // Advance removal pointer.
+        if (q->outPtr == q->last)
+            q->outPtr = q->first;
+        return true;
+    }
+    return false;               // Queue is empty.
 }
 
 #endif /* CORE_QUEUE_H_ */

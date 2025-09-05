@@ -15,8 +15,8 @@ void ConsoleDrv_Init()
 	ConsoleDrv.rxLength = 0;
 	ConsoleDrv.rxIndex = 0;
 	Queue_Init(&ConsoleDrv.txQueue, ConsoleDrv.txBuffer, TX_BUF_SIZE);
-	M_EVENT_INIT(ConsoleDrv_Receive, sizeof(uint8_t));
-	M_EVENT_INIT(ConsoleDrv_Send);
+	M_EVENT_INIT(ConsoleDrv_ReceiveEvent, sizeof(uint8_t));
+	M_EVENT_INIT(ConsoleDrv_SendEvent);
 
 	ConsoleDrv.consoleRx = &ConsoleDrv_ReceiveHeader;
 
@@ -46,7 +46,7 @@ bool ConsoleDrv_SendPacket(uint16_t type, uint8_t length, const uint8_t* data)
 
     if (!ConsoleDrv.sending)
     {
-    	M_EVENT_POST(ConsoleDrv_Send);
+    	M_EVENT_POST(ConsoleDrv_SendEvent);
     	ConsoleDrv.sending = true;
     }
 
@@ -62,7 +62,7 @@ M_EVENT_HANDLER(ConsoleDrv_Send)
     	Queue_Pop(&ConsoleDrv.txQueue, &data);
 		ConsoleHal_Write(data);
 	}
-    M_EVENT_POST(ConsoleDrv_Send);
+    M_EVENT_POST(ConsoleDrv_SendEvent);
 }
 
 M_EVENT_HANDLER(ConsoleDrv_Receive)

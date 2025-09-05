@@ -27,11 +27,11 @@ void Test_Init()
 	CONSOLE_REGISTER_COMMAND(105, send);
 
 	// Init for M_TASK
-	M_TASK_INIT(timeout);
+	M_TASK_INIT(timeoutTask);
 
 	// Init for M_EVENT
-	M_EVENT_INIT(sendPressed);
-	M_EVENT_INIT(fake, sizeof(fake_data_t));
+	M_EVENT_INIT(sendPressedEvent);
+	M_EVENT_INIT(fakeEvent, sizeof(fake_data_t));
 
 	LOG_PRINT("TEST EVENTS - TASKS");
 }
@@ -58,7 +58,7 @@ M_TASK_HANDLER(timeout)
 	value.fake3 = value.fake2 + 1;
 	value.fake4 = value.fake3 + 1;
 
-	M_EVENT_POST(fake, value);
+	M_EVENT_POST(fakeEvent, value);
 	value.fake1++;
 }
 

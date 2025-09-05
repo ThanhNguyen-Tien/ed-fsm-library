@@ -18,10 +18,10 @@ void Lcd_Drv_Init()
 	HAL_GPIO_WritePin(D6_PORT, D6_PIN, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(D7_PORT, D7_PIN, GPIO_PIN_RESET);
 
-	M_EVENT_INIT(send, sizeof(lcd_data_t));
+	M_EVENT_INIT(sendEvent, sizeof(lcd_data_t));
 	M_STRAND_INIT(lcd_drv);
 
-	SM_START(lcd_drv, Lcd_Drv_Ready);
+	SM_START(lcd_drvMachine, Lcd_Drv_Ready);
 }
 
 void Lcd_Drv_Write2Nib(uint8_t data)
@@ -66,10 +66,10 @@ M_EVENT_HANDLER(send)
 	data_ = (*payload);
 	if(data_.type == SEND_CMD)
 	{
-		SM_EXECUTE(lcd_drv, LCD_DRV_SEND_CMD);
+		SM_EXECUTE(lcd_drvMachine, LCD_DRV_SEND_CMD);
 	}
 	else
 	{
-		SM_EXECUTE(lcd_drv, LCD_DRV_SEND_DATA);
+		SM_EXECUTE(lcd_drvMachine, LCD_DRV_SEND_DATA);
 	}
 }

@@ -25,22 +25,22 @@ U_INTEGER_HANDLER(repeat)
 U_ACTION_HANDLER(startTask)
 {
 	LOG_PRINT("Start Timeout Task With Interval");
-	M_TASK_START(timeout, interval, repeat);
+	M_TASK_START(timeoutTask, interval, repeat);
 }
 
 U_ACTION_HANDLER(stopTask)
 {
 	LOG_PRINT("Stop Timeout Task");
-	M_TASK_STOP(timeout);
+	M_TASK_STOP(timeoutTask);
 }
 
 U_ACTION_HANDLER(startForever)
 {
 	LOG_PRINT("Start Timeout Task Forever");
-	M_TASK_START(timeout, interval);
+	M_TASK_START(timeoutTask, interval);
 }
 
 U_ACTION_HANDLER(send)
 {
-	M_EVENT_POST(sendPressed);
+	M_EVENT_POST(sendPressedEvent);
 }

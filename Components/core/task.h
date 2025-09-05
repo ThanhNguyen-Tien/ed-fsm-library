@@ -1,77 +1,58 @@
 #ifndef CORE_TASK_H_
 #define CORE_TASK_H_
 
-#include <stdint.h>
-#include <stdbool.h>
 #include "event.h"
 
-/**
- * @brief Forward declaration of the Task structure.
- */
+// Forward declaration of the Task structure.
 typedef struct Task task_t;
 
 /**
- * @brief Structure representing a task in the system.
+ * @brief Structure representing a scheduled task.
  *
- * This structure holds information about a task, including its execution interval,
- * the next tick for execution, the number of loops, the handler function, and any
- * associated user data.
- * @note task_t acts as a softtimer, which means it is used for timing tasks \
- * (e.g. \sending data every 1s, reading motor speed every 10ms, etc...)
+ * In this library, concept of task is used to manage periodic or delayed execution of functions.
+ * Contains timing, handler, and user data for task management.
  */
 typedef struct Task
 {
-    task_t* next;              /**< Pointer to the next task in the task list. */
-    uint32_t interval;         /**< Interval for task execution. */
-    uint64_t nextTick;         /**< Tick count when the task should execute next. */
-    int32_t loop;              /**< Number of times the task should loop (-1 for infinite). */
-    EventHandler handler;      /**< Function pointer to the task's handler. */
-    void* data;                /**< Pointer to data for the task. */
-}task_t;
+    task_t *next;           ///< Pointer to the next task in the list.
+    uint32_t interval;      ///< Interval between task executions (in ticks or ms).
+    uint64_t nextTick;      ///< Next scheduled tick for task execution.
+    int32_t loop;           ///< Number of times to repeat the task (-1 for infinite).
+    EventHandler handler;   ///< Function pointer to the task handler.
+    void *data;             ///< User-defined data payload for the task.
+} task_t;
 
 /**
- * @brief Executes a task and updates its state.
+ * @brief Runs all scheduled tasks that are due.
  *
- * This function processes a given task by decrementing its loop counter,
- * updating its next execution tick, and invoking its handler function.
- * If the task's loop counter reaches zero, it is marked for stopping.
- *
- * @param task Pointer to the task to be executed. Must not be NULL.
- *
- * @note This function assumes that the task's handler and data are properly
- * initialized. It is the caller's responsibility to ensure the validity
- * of the task structure.
+ * This function checks all registered tasks and executes those whose scheduled time has arrived.
  */
-void Task_Run(task_t* task);
+void Task_Run();
 
 /**
- * @brief Starts a task with the specified parameters.
+ * @brief Starts a task with the specified interval, loop count, and payload.
  *
- * @param task Pointer to the task to be started.
- * @param interval Interval for task executions.
- * @param loop Number of times the task should loop (-1 for infinite).
- * @param payload Pointer to a context to be passed to the task handler.
- *
- * @note If the task is already running, its parameters will be updated.
+ * @param task Pointer to the task structure.
+ * @param interval Time interval between executions.
+ * @param loop Number of times to repeat (-1 for infinite).
+ * @param payload Pointer to user data for the task.
  */
-void Task_Start(task_t* task, uint32_t interval, int32_t loop, void* payload);
+void Task_Start(task_t *task, uint32_t interval, int32_t loop, void *payload);
 
 /**
- * @brief Stops a running task.
+ * @brief Stops the specified task from running.
  *
- * @param task Pointer to the task to be stopped.
- *
- * @note Once stopped, the task will no longer be executed until it is started again.
+ * @param task Pointer to the task structure to stop.
  */
-void Task_Stop(task_t* task);
+void Task_Stop(task_t *task);
 
 /**
- * @brief Checks if a task is currently running.
+ * @brief Checks if the specified task is currently running.
  *
- * @param task Pointer to the task to be checked.
- * @return `true` if the task is running, `false` otherwise.
+ * @param task Pointer to the task structure.
+ * @return true if the task is running, false otherwise.
  */
-bool Task_IsRunning(task_t* task);
+bool Task_IsRunning(task_t *task);
 
 #define M_TASK_DEF(name)\
 	extern task_t name##Task;
@@ -81,11 +62,11 @@ bool Task_IsRunning(task_t* task);
 	void name##TaskHandler##_();
 
 #define M_TASK_INIT(name)\
-	Engine_RegisterTask(&name##Task);\
-	name##Task.handler = &name##TaskHandler_;
+	Engine_RegisterTask(&name);\
+	name.handler = &name##Handler_;
 
-#define _M_TASK_START_3(name, interval, loop)	Task_Start(&name##Task, interval, loop, NULL)
-#define _M_TASK_START_2(name, interval)	Task_Start(&name##Task, interval, 0, NULL)
+#define _M_TASK_START_3(name, interval, loop)	Task_Start(&name, interval, loop, NULL)
+#define _M_TASK_START_2(name, interval)	Task_Start(&name, interval, 0, NULL)
 
 #define _TASK_NARGS3(_1, _2, _3, N, ...) N
 #define _TASK_NARGS(...) _TASK_NARGS3(__VA_ARGS__, 3, 2)
@@ -94,8 +75,7 @@ bool Task_IsRunning(task_t* task);
 
 #define M_TASK_START(...) _TASK_CHOOSER(_TASK_NARGS(__VA_ARGS__))(__VA_ARGS__)
 
-#define M_TASK_STOP(name)					Task_Stop(&name##Task)
-#define M_TASK_HANDLER(name)				void name##TaskHandler##_(void *data)
-
+#define M_TASK_STOP(name)					Task_Stop(&name)
+#define M_TASK_HANDLER(name)				void name##TaskHandler##_(void)
 
 #endif /* CORE_TASK_H_ */

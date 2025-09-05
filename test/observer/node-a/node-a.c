@@ -5,7 +5,7 @@ M_OBS_NODE(a_)
 
 void Node_A_Init()
 {
-	M_OBS_NODE_INIT(a_, float, PUSH_TO_QUEUE);
+	M_OBS_NODE_INIT(a_Node, sizeof(float), PUSH_TO_QUEUE);
 }
 
 M_OBS_NODE_HANDLER(a_)
