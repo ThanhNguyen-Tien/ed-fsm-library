@@ -11,7 +11,7 @@
 
 ```sh
 git clone https://github.com/ThanhNguyen-Tien/ed-fsm-library.git
-git checkout cppVersion
+git checkout mStack-3
 ```
 
 2. Create your project with STM32Cube IDE, in STM32 Cube MX (.ioc file)
@@ -43,7 +43,6 @@ git checkout cppVersion
    - At Tab Include/GNU C++ click "Add.." > Workspace > Locate to `Components`: "/${ProjName}/Components"
 
 6. Now we successfully import library to project.
-7. In this repo, there is a test folder. This folder contains basic examples to experiment with the mechanisms that the framework provides. You can select one of them to test by excluding all other examples in the 'test' folder.
 
 ## DONATE
   - `102002286610` VIETTINBANK - NGUYEN TIEN THANH

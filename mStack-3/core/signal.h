@@ -12,9 +12,12 @@ public:
 	void disconnect() {
 		event_ = nullptr;
 	}
-	inline void emit() {
+	inline void emit(bool immediately = false) {
 		if (event_ != nullptr) {
-			event_->post();
+			if (!immediately)
+				event_->post();
+			else
+				event_->execute_();
 		}
 	}
 private:
@@ -30,9 +33,12 @@ public:
 	void disconnect() {
 		event_ = nullptr;
 	}
-	inline void emit(E e) {
+	inline void emit(E e, bool immediately = false) {
 		if (event_ != nullptr) {
-			event_->post(e);
+			if (!immediately)
+				event_->post(e);
+			else
+				event_->execute_(e);
 		}
 	}
 private:
@@ -80,9 +86,14 @@ protected:
 
 class EmptySignalMany: public BaseSignalMany<EmptyEvent> {
 public:
-	inline void emit() {
+	inline void emit(bool immediately = false) {
 		for (Connection *it = connections_; it != nullptr; it = it->next) {
-			it->event->post();
+			if (it->event != nullptr) {
+				if (!immediately)
+					it->event->post();
+				else
+					it->event->execute_();
+			}
 		}
 	}
 };
@@ -90,9 +101,14 @@ public:
 template<typename EV, typename E>
 class SignalMany: public BaseSignalMany<EV> {
 public:
-	inline void emit(E e) {
+	inline void emit(E e, bool immediately = false) {
 		for (auto it = this->connections_; it != nullptr; it = it->next) {
-			it->event->post(e);
+			if (it->event != nullptr) {
+				if (!immediately)
+					it->event->post(e);
+				else
+					it->event->execute_(e);
+			}
 		}
 	}
 };

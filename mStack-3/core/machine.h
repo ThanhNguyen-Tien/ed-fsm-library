@@ -187,9 +187,6 @@ explicit name(uint32_t numOfMem = 0)\
 #define STATE_DEF(name) void name();
 #define STATE_BODY(name) void name()
 
-#define STATE_DEF_COMMON(name) bool name();
-#define STATE_BODY_COMMON(name) bool name()
-
 #define _TRANSITION_1(ev) if (check_((uint8_t)ev, currentState_))
 #define _TRANSITION_2(ev,st) if (check_((uint8_t)ev, (core::Machine::State)&CLASS::st))
 #define TRANSITION_(...) _M_MACRO_2(__VA_ARGS__, _TRANSITION_2, _TRANSITION_1)(__VA_ARGS__)

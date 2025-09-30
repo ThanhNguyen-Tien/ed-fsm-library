@@ -27,6 +27,8 @@ private:
 	Component *component_ = nullptr;
 	Handler handler_ = nullptr;
 	friend class Strand;
+    friend class EmptySignalOne;
+    friend class EmptySignalMany;
 };
 
 template<typename E>
@@ -40,9 +42,17 @@ public:
 	virtual void post(const E &e) = 0; // pure virtual
 protected:
 	virtual void execute(AbstractEventQueue *queue) = 0;
+	void execute_(const E &e)
+	{
+		(this->component_->*this->handler_)(e);
+	}
 
 	Component *component_ = nullptr;
 	Handler handler_ = nullptr;
+    template <typename EV, typename EventE>
+    friend class SignalOne;
+    template <typename EV, typename EventE>
+    friend class SignalMany;
 };
 
 template<typename E>
