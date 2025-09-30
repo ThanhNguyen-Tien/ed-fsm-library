@@ -40,13 +40,14 @@ protected:
 };
 }
 
-#define COMPONENT(module, name)\
-namespace module{\
-class name: public core::Component{\
-using CLASS = module::name;\
-public: static name& instance(){static name instance;return instance;}\
-private:\
-    virtual ~name() = default;\
+#define COMPONENT(module, name, ...) \
+namespace module { \
+class name : public core::Component, ##__VA_ARGS__ { \
+    using CLASS = module::name; \
+public: \
+    static name& instance() { static name instance; return instance; } \
+private: \
+    virtual ~name() = default; \
     name() = default;
 
 #define COMPONENT_END };}

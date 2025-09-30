@@ -153,34 +153,37 @@ protected:
 };
 }
 
-#define SIMPLE_MACHINE(module, name) namespace module{class name: public core::SimpleMachine{\
-		using CLASS = module::name;\
-public: static name& instance(){static name instance;return instance;}\
-private:\
-virtual ~name(){}\
-name()=default;
+#define SIMPLE_MACHINE(module, name, ...) \
+namespace module { \
+class name : public core::SimpleMachine, ##__VA_ARGS__ { \
+	using CLASS = module::name; \
+public: \
+	static name& instance() { static name instance; return instance; } \
+private: \
+	virtual ~name() = default; \
+	name() = default;
 
-#define _PAYLOAD_MACHINE_3(module, name, type)\
-	namespace module{class name: public core::PayloadMachine<type>{\
-	using CLASS = module::name;\
+#define _PAYLOAD_MACHINE_3(module, name, type, ...)\
+namespace module { \
+class name : public core::PayloadMachine<type>, ##__VA_ARGS__ { \
+	using CLASS = module::name; \
 	using Base  = core::PayloadMachine<type>;\
 public:\
-	static name& instance(){static name instance(0);return instance;}\
+	static name& instance() { static name instance(0); return instance; } \
 private:\
-virtual ~name(){}\
-explicit name(uint32_t numOfMem = 0)\
-	: Base(numOfMem) {}
+	virtual ~name() = default; \
+	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {}
 
-#define _PAYLOAD_MACHINE_4(module, name, type, numOfBlock)\
-	namespace module{class name: public core::PayloadMachine<type>{\
-	using CLASS = module::name;\
-	using Base  = core::PayloadMachine<type>;\
-public:\
-	static name& instance(){static name instance(numOfBlock);return instance;}\
+#define _PAYLOAD_MACHINE_4(module, name, type, numOfBlock, ...)\
+namespace module { \
+class name : public core::PayloadMachine<type> , ##__VA_ARGS__ { \
+	using CLASS = module::name; \
+	using Base  = core::PayloadMachine<type>; \
+public: \
+	static name& instance() { static name instance(numOfBlock);return instance; } \
 private:\
-virtual ~name(){}\
-explicit name(uint32_t numOfMem = 0)\
-	: Base(numOfMem) {}
+	virtual ~name() = default; \
+	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {}
 
 #define PAYLOAD_MACHINE(...) _M_MACRO_4(__VA_ARGS__, _PAYLOAD_MACHINE_4, _PAYLOAD_MACHINE_3)(__VA_ARGS__)
 
@@ -195,8 +198,8 @@ explicit name(uint32_t numOfMem = 0)\
 #define _SM_POST_PAYLOAD(ev, payload) this->postEvent((uint8_t)ev, payload)
 #define SM_POST(...) _M_MACRO_2(__VA_ARGS__, _SM_POST_PAYLOAD, _SM_POST_SIMPLE)(__VA_ARGS__)
 
-#define _SM_EXECUTE_SIMPLE(event) {uint8_t e = (uint8_t)event; this->execute(e);}
-#define _SM_EXECUTE_PAYLOAD(event, payload) {uint8_t e = (uint8_t)event; this->execute(e, payload);}
+#define _SM_EXECUTE_SIMPLE(ev) {uint8_t e = (uint8_t)ev; this->execute(e);}
+#define _SM_EXECUTE_PAYLOAD(ev, pay) { pm_event_t e = {.payload = pay, .event = (uint8_t)ev}; this->execute(e); }
 #define SM_EXECUTE(...) _M_MACRO_2(__VA_ARGS__, _SM_EXECUTE_PAYLOAD, _SM_EXECUTE_SIMPLE)(__VA_ARGS__)
 
 #define ENTER_() if (nextEvent_ == ENTER)
