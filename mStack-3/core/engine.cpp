@@ -9,14 +9,11 @@ Event::Event() {
 	index_ = Engine::instance().events().registerEvent_(this);
 }
 
-Engine::Engine() :
-		Event(0) {
-}
+Engine::Engine() : Event(0) {}
 
 void Engine::init() {
 	events_.registerEvent_(this);
-	pStartTimerEvent_ =
-			new SmallFixedEvent<Timer*>(this,
+	pStartTimerEvent_ = new SmallFixedEvent<Timer*>(this,
 					static_cast<SmallFixedEvent<Timer*>::Handler>(&Engine::startTimer_));
 	pStopTimerEvent_ = new SmallFixedEvent<Timer*>(this,
 			static_cast<SmallFixedEvent<Timer*>::Handler>(&Engine::stopTimer_));
@@ -24,6 +21,9 @@ void Engine::init() {
 }
 
 void Engine::run() {
+#ifdef MONITOR_EVENT_TIME_EXECUTION
+	DWT_Init();
+#endif
 	while (true) {
 		if (events_.next())
 			continue;

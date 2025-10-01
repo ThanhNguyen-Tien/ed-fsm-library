@@ -12,5 +12,6 @@
 #define EVENT_QUEUE_SIZE	128
 
 void systemInit();
+void DWT_Init(void);
 
 #endif // SYSTEM_H

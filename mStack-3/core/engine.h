@@ -72,13 +72,13 @@ inline void Engine::tick() {
 }
 
 #ifdef DEBUG
-#define DEBUG_HOOK(ns, cls) \
-        ns::cls* cls##Instance = nullptr;
-#define DEBUG_ATTACH(ns, cls) \
-        cls##Instance = &ns::cls::instance();
+#define DEBUG_HOOK(module, cls) \
+        module::cls* cls##Instance = nullptr;
+#define DEBUG_ATTACH(module, cls) \
+		cls##Instance = &module::cls::instance();
 #else
-    #define DEBUG_HOOK(ns, cls)
-    #define DEBUG_ATTACH(ns, cls)
+    #define DEBUG_HOOK(module, cls)
+    #define DEBUG_ATTACH(module, cls)
 #endif
 
 #endif // ENGINE_H

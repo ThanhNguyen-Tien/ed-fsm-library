@@ -17,23 +17,32 @@ public:
 
 class Component {
 public:
-	virtual void init() {/*empty*/
-	}
-	virtual ~Component() {
-	}
+	virtual void init() {}
+	virtual ~Component() {}
 };
 
 class Event {
 public:
+#ifdef MONITOR_EVENT_TIME_EXECUTION
+	typedef struct EvTimeExecution
+	{
+		uint32_t min_time;
+		uint32_t max_time;
+		uint32_t last_exec_time;
+	} event_time_exe_t;
+
+	event_time_exe_t timeExecution {
+    UINT32_MAX, // min_time
+    0,          // max_time
+    0U          // last_exec_time
+	};
+
+#endif
 	Event();
-	virtual ~Event() {
-	}
-	;
+	virtual ~Event() {}
 protected:
 	virtual void execute(core::AbstractEventQueue *queue) = 0;
-	Event(uint8_t index) :
-			index_(index) {
-	}
+	Event(uint8_t index) : index_(index) {}
 	uint8_t index_;
 	friend class EventQueue;
 	friend class Strand;

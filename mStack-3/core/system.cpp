@@ -13,3 +13,10 @@ void systemInit() {
 	SystemClock_Config();
 	MX_GPIO_Init();
 }
+
+void DWT_Init(void)
+{
+	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // Enable Debug Exception and Monitor Control
+	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;           // Enable Cycle Counter
+	DWT->CYCCNT = 0;                               // Reset Counter
+}

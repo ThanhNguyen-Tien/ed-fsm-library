@@ -24,13 +24,29 @@ public:
 	}
 
 	inline bool next() {
+
 		if (evQueue.empty()) {
 			return false;
 		}
 		uint8_t index = evQueue.pop();
 		if (index < poolSize_) {
+#ifdef MONITOR_EVENT_TIME_EXECUTION
+			Event *e = events_[index];
+			uint32_t exec_start = DWT->CYCCNT;
+			e->execute(this);
+			e->timeExecution.last_exec_time = DWT->CYCCNT - exec_start;
+			if (e->timeExecution.last_exec_time > e->timeExecution.max_time)
+				e->timeExecution.max_time = e->timeExecution.last_exec_time;
+			if (e->timeExecution.last_exec_time < e->timeExecution.min_time)
+				e->timeExecution.min_time = e->timeExecution.last_exec_time;
+#else
 			Event *e = events_[index];
 			e->execute(this);
+#endif
+		}
+		else
+		{
+			Error_Handler();
 		}
 		return true;
 	}
