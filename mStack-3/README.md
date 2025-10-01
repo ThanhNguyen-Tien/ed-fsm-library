@@ -31,18 +31,19 @@ git checkout mStack-3
        
     -  Generate Project
 
-3. Copy the `Components` folder from repo to your project
+3. Copy the `mStack-3` folder from repo to your project
 4. Include this folder to Build progress
    
-   - Right click to the `Components` folder > Resource Configuration > Exclude from Build => unSelect all
+   - Right click to the `mStack-3` folder > Resource Configuration > Exclude from Build => unSelect all
      
-5. Add path for `Components`
+5. Add path for `mStack-3`
    
    - Right click to the Project Name > Properties > C/C++ General > Paths and Symbols
-   - At Tab Include/GNU C click "Add.." > Workspace > Locate to `Components`: "/${ProjName}/Components"
-   - At Tab Include/GNU C++ click "Add.." > Workspace > Locate to `Components`: "/${ProjName}/Components"
+   - At Tab Include/GNU C click "Add.." > Workspace > Locate to `mStack-3`: "/${ProjName}/mStack-3"
+   - At Tab Include/GNU C++ click "Add.." > Workspace > Locate to `mStack-3`: "/${ProjName}/mStack-3"
 
 6. Now we successfully import library to project.
+7. There is an example folder to quickly run a `demo` project with mStack-3. You can also copy this folder along with `mStack-3` folder into your project to run it.
 
 ## DONATE
   - `102002286610` VIETTINBANK - NGUYEN TIEN THANH
