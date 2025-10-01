@@ -13,14 +13,18 @@ public:
 	inline bool isRunning() {
 		return (loop_ != 0);
 	}
+
 private:
 	void run_();
+
+private:
 	Timer *next_ = nullptr;
 	uint32_t interval_ = 0U;
 	uint64_t nextTick_ = 0U;
 	int32_t loop_ = 0;
 	Component *component_ = nullptr;
 	Handler handler_ = nullptr;
+
 	friend class Engine;
 };
 }

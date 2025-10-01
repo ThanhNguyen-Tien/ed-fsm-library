@@ -32,14 +32,15 @@ public:
 	} event_time_exe_t;
 
 	event_time_exe_t timeExecution {
-    UINT32_MAX, // min_time
-    0,          // max_time
-    0U          // last_exec_time
+		UINT32_MAX, // min_time
+		0,          // max_time
+		0U          // last_exec_time
 	};
 
 #endif
 	Event();
 	virtual ~Event() {}
+
 protected:
 	virtual void execute(core::AbstractEventQueue *queue) = 0;
 	Event(uint8_t index) : index_(index) {}

@@ -15,6 +15,7 @@ public:
 	void post() {
 		Engine::instance().events().post(this->index_);
 	}
+
 private:
 	void execute(AbstractEventQueue *queue) override
 	{
@@ -24,6 +25,7 @@ private:
 	inline void execute_() {
 		(component_->*handler_)();
 	}
+
 	Component *component_ = nullptr;
 	Handler handler_ = nullptr;
 	friend class Strand;
@@ -39,10 +41,12 @@ public:
 			component_(component), handler_(handler) {
 	}
 
-	virtual void post(const E &e) = 0; // pure virtual
+	virtual void post(const E &e) = 0;
+
 protected:
 	virtual void execute(AbstractEventQueue *queue) = 0;
-	void execute_(const E &e)
+
+	inline void execute_(const E &e)
 	{
 		(this->component_->*this->handler_)(e);
 	}
