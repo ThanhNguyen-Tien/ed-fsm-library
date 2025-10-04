@@ -4,8 +4,10 @@
 
 HAL_DEF(console)
     static void init();
+#ifndef USING_DMA
     static bool txReady();
     static void write(uint8_t c);
+#endif
 HAL_END
 
 #endif // HAL_H

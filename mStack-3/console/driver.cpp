@@ -54,6 +54,63 @@ void console::Driver::ReceiveFooter_(uint8_t data) {
 	rxState_ = &Driver::ReceiveHeader_;
 }
 
+#ifdef USING_DMA
+M_EVENT_HANDLER(console::Driver, receive, uint16_t) {
+	if (event == MAX_PACKET_LENGTH)
+	{
+		const char *text = "CONSOLE OVER RX";
+		int l = strlen(text) + 1;
+		sendPacket(Controller::MessageReceived, l, (uint8_t*) text);
+	}
+	for (uint16_t i = 0; i < (event & 0xFF); i++)
+	{
+		uint8_t c = rxBufferDma_[((event >> 8) & 0xFF) + i];
+		(this->*rxState_)(c);
+	}
+}
+
+M_EVENT_HANDLER(console::Driver, send) {
+	if (txIndex_ == txFirst_) {
+		sending_ = false;
+		return;
+	}
+	transferDma_();
+}
+
+bool console::Driver::sendPacket(uint16_t type, uint8_t length,
+		const uint8_t *data) {
+	uint8_t checksum = 0;
+	uint16_t avail = txLast_ - txIndex_ + 1;
+	if (avail < length + 6)
+		return false;
+
+	uint8_t *ptr = txIndex_;
+	*ptr++ = HEADER_INDICATOR;
+	checksum += HEADER_INDICATOR;
+	*ptr++ = length;
+	checksum += length;
+	*ptr++ = (uint8_t) (type >> 8);
+	checksum += (uint8_t) (type >> 8);
+	*ptr++ = (uint8_t) (type);
+	checksum += (uint8_t) (type);
+
+	memcpy(ptr, data, length);
+	for (int i = 0; i < length; ++i)
+		checksum += data[i];
+	ptr += length;
+
+	*ptr++ = checksum;
+	*ptr++ = FOOTER_INDICATOR;
+
+	txIndex_ = ptr;
+	if (!sending_) {
+		sending_ = true;
+		transferDma_();
+	}
+
+	return true;
+}
+#else
 M_EVENT_HANDLER(console::Driver, receive, uint8_t) {
 	(this->*(rxState_))(event);
 }
@@ -97,3 +154,4 @@ M_EVENT_HANDLER(console::Driver, send) {
 	}
 	sendEvent.post();
 }
+#endif
