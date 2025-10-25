@@ -113,7 +113,7 @@ void Observer_Notify(obs_subject_t *sub, void *data);
 
 #define M_OBS_NODE_INIT(name, size, type_enum)\
 	_Static_assert((type_enum) == PUSH_TO_QUEUE || (type_enum) == CALL_IMMEDIATLY, "Invalid obs_handler_type_t value"); \
-	M_EVENT_INIT(name, size);\
+	M_EVENT_INIT(name##Event, size);\
 	Observer_InitNode(&name, &name##Event, (obs_handler_type_t)(type_enum));
 
 #define M_OBS_NODE_HANDLER(name)	void name##NodeEventHandler_(void *data)
