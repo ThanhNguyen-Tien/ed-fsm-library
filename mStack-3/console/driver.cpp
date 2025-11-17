@@ -70,45 +70,70 @@ M_EVENT_HANDLER(console::Driver, receive, uint16_t) {
 }
 
 M_EVENT_HANDLER(console::Driver, send) {
-	if (txIndex_ == txFirst_) {
-		sending_ = false;
-		return;
-	}
-	transferDma_();
+    if (dmaChunkLen_ != 0) {
+        // move tail forward by dmaChunkLen_
+        txTail_ = (txTail_ + dmaChunkLen_) % TX_BUF_SIZE;
+        dmaChunkLen_ = 0;
+    }
+
+    // If there's more data, start next chunk
+    if (txHead_ == txTail_) {
+        // buffer empty
+        sending_ = false;
+        return;
+    }
+
+    // start next chunk (will check if DMA stream is free)
+    transferDma_();
 }
 
-bool console::Driver::sendPacket(uint16_t type, uint8_t length,
-		const uint8_t *data) {
-	uint8_t checksum = 0;
-	uint16_t avail = txLast_ - txIndex_ + 1;
-	if (avail < length + 6)
-		return false;
+bool console::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *data) {
+    CRITICAL_SECTION();
 
-	uint8_t *ptr = txIndex_;
-	*ptr++ = HEADER_INDICATOR;
-	checksum += HEADER_INDICATOR;
-	*ptr++ = length;
-	checksum += length;
-	*ptr++ = (uint8_t) (type >> 8);
-	checksum += (uint8_t) (type >> 8);
-	*ptr++ = (uint8_t) (type);
-	checksum += (uint8_t) (type);
+    // compute free space in circular buffer
+    // free = (tail - head - 1 + SIZE) % SIZE  (we leave 1 byte free to disambiguate full/empty)
+    uint16_t free_space = (txTail_ + TX_BUF_SIZE - txHead_ - 1) % TX_BUF_SIZE;
+    uint16_t required = (uint16_t)length + 6; // HEADER + LEN + TYPE(2) + data + checksum + FOOTER
 
-	memcpy(ptr, data, length);
-	for (int i = 0; i < length; ++i)
-		checksum += data[i];
-	ptr += length;
+    if (free_space < required) {
+    	++statsDrops;
+        return false; // not enough space
+    }
 
-	*ptr++ = checksum;
-	*ptr++ = FOOTER_INDICATOR;
+    uint8_t checksum = 0;
 
-	txIndex_ = ptr;
-	if (!sending_) {
-		sending_ = true;
-		transferDma_();
-	}
+    // lambda to push a byte into circular buffer
+    auto push_byte = [&](uint8_t b) {
+        txBuf_[txHead_] = b;
+        txHead_ = (txHead_ + 1) % TX_BUF_SIZE;
+    };
 
-	return true;
+    // Build packet in circular buffer
+    push_byte(static_cast<uint8_t>(HEADER_INDICATOR)); checksum += HEADER_INDICATOR;
+    push_byte(length); checksum += length;
+    uint8_t type_hi = static_cast<uint8_t>(type >> 8);
+    uint8_t type_lo = static_cast<uint8_t>(type & 0xFF);
+    push_byte(type_hi); checksum += type_hi;
+    push_byte(type_lo); checksum += type_lo;
+
+    for (uint16_t i = 0; i < length; ++i) {
+        uint8_t b = data[i];
+        push_byte(b);
+        checksum += b;
+    }
+
+    push_byte(checksum);
+    push_byte(static_cast<uint8_t>(FOOTER_INDICATOR));
+
+	uint16_t used = (txHead_ + TX_BUF_SIZE - txTail_) % TX_BUF_SIZE;
+	if (used > statsHighWatermark) statsHighWatermark = used;
+
+    if (!sending_) {
+        sending_ = true;
+        transferDma_();
+    }
+
+    return true;
 }
 #else
 M_EVENT_HANDLER(console::Driver, receive, uint8_t) {

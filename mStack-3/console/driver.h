@@ -11,11 +11,13 @@ COMPONENT(console, Driver)
 	M_EVENT(receive, uint16_t)
 public:
 	void init();
-    uint16_t getMaxUsed(){return maxTxIndex_;}
 	bool sendPacket(uint16_t type, uint8_t length, const uint8_t* data);
 
-	uint8_t& txBuf() {return txBufferDma_[0];}
+	uint8_t& txBuf() {return txBuf_[txTail_];}
 	uint8_t& rxBuf() {return rxBufferDma_[0];}
+
+    volatile uint32_t statsDrops = 0;
+    volatile uint32_t statsHighWatermark = 0;
 
 private:
 	typedef void (Driver::*RxState) (uint8_t);
@@ -28,33 +30,55 @@ private:
 	RxState rxState_ = &Driver::ReceiveHeader_;
 
 private:
-	inline void transferDma_()
-	{
-		uint16_t len = txIndex_ - txFirst_;
-		memcpy(txBufferDma_, txBuffer_, len);
-		LL_DMA_SetDataLength(DMA_MODULE, DMA_TX_CHANNEL, len);
-		LL_DMA_EnableStream(DMA_MODULE, DMA_TX_CHANNEL);
-		if (len > maxTxIndex_)
-			maxTxIndex_ = len;
-		txIndex_ = txFirst_;
+	inline void transferDma_() {
+	    // If DMA stream still enabled, another transfer is ongoing - do nothing
+	    if (LL_DMA_IsEnabledStream(DMA_MODULE, DMA_TX_CHANNEL)) {
+	        return;
+	    }
+
+	    // Compute contiguous chunk length from tail
+	    uint16_t len = 0;
+	    if (txTail_ < txHead_) {
+	        // contiguous region: tail .. head-1
+	        len = (uint16_t)(txHead_ - txTail_);
+	    } else {
+	        // wrapped: send from tail to end of buffer
+	        len = (uint16_t)(TX_BUF_SIZE - txTail_);
+	    }
+
+	    if (len == 0) {
+	        // No data (caller should have checked already) -> clear sending_ to be safe
+	        sending_ = false;
+	        return;
+	    }
+
+	    // Remember how many bytes we just scheduled
+	    dmaChunkLen_ = len;
+
+//		LL_DMA_DisableStream(DMA_MODULE, DMA_TX_CHANNEL);
+	    // Configure DMA memory pointer and length (peripheral address pre-configured)
+	    LL_DMA_SetMemoryAddress(DMA_MODULE, DMA_TX_CHANNEL, (uint32_t)&txBuf_[txTail_]);
+	    LL_DMA_SetDataLength(DMA_MODULE, DMA_TX_CHANNEL, (uint32_t)dmaChunkLen_);
+
+	    // Clear any pending DMA flags here if platform requires (optionally).
+	    // Start DMA transfer
+	    LL_DMA_EnableStream(DMA_MODULE, DMA_TX_CHANNEL);
 	}
 
 private:
 	uint16_t rxType_;
-	uint16_t maxTxIndex_;
 
     uint8_t rxBuffer_[MAX_PACKET_LENGTH];
     uint8_t rxBufferDma_[MAX_PACKET_LENGTH];
     uint8_t rxLength_, checksum_;
     uint8_t rxIndex_;
 
-    uint8_t txBuffer_[TX_BUF_SIZE];
-    uint8_t txBufferDma_[TX_BUF_SIZE];
-	uint8_t *txFirst_ = txBuffer_;
-	uint8_t *txLast_ = txBuffer_ + TX_BUF_SIZE;
-	uint8_t *txIndex_ = txFirst_;
+    uint8_t txBuf_[TX_BUF_SIZE];
+    uint16_t txHead_ = 0;
+    uint16_t txTail_ = 0;
+    volatile uint16_t dmaChunkLen_ = 0;
 
-    bool sending_ = false;
+    volatile bool sending_ = false;
 COMPONENT_END
 #else
 COMPONENT(console, Driver)

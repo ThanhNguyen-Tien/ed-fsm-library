@@ -58,7 +58,9 @@ public: \
     static name& instance() { static name instance; return instance; } \
 private: \
     virtual ~name() = default; \
-    name() = default;
+    name() = default; \
+    name(const name&) = delete;	\
+    name& operator=(const name&) = delete;
 
 #define COMPONENT_END };}
 #define COMPONENT_REG(module, name) module::name::instance().init();

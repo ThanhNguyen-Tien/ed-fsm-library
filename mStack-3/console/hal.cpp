@@ -101,7 +101,6 @@ DMA_TX_ISR()
 	if (DMA_CHECK_TC_FLAG(6))
 	{
 		DMA_CLEAR_TC_FLAG(6);
-		LL_DMA_DisableStream(DMA_MODULE, DMA_TX_CHANNEL);
 		console::Driver::instance().sendEvent.post();
 	} else if (DMA_CHECK_TE_FLAG(6))
 	{

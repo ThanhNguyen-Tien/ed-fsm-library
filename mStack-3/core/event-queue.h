@@ -52,12 +52,11 @@ public:
 	}
 
 	inline void post(uint8_t index) {
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		uint16_t avail = evQueue.freeSpace();
 		if (avail < 1) {
 #ifdef RELEASE
 				minAvail_ = 0;
-				ENABLE_INTERRUPT;
 				return;
 #else
 			Error_Handler();
@@ -68,17 +67,15 @@ public:
 		if (avail < minAvail_) {
 			minAvail_ = avail;
 		}
-		ENABLE_INTERRUPT;
 	}
 
 	inline void pushFixed(uint8_t index, uint8_t *data, size_t size) override
 	{
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		uint16_t avail = evQueue.freeSpace();
 		if (avail < size + 1) {
 #ifdef RELEASE
 				minAvail_ = 0;
-				ENABLE_INTERRUPT;
 				return;
 #else
 			Error_Handler();
@@ -92,7 +89,6 @@ public:
 		if (avail < minAvail_) {
 			minAvail_ = avail;
 		}
-		ENABLE_INTERRUPT;
 	}
 
 	inline void popFixed(uint8_t *data, size_t size) override

@@ -2,10 +2,10 @@
 #define CONSOLE_DEFINE_H_
 
 /*CONTROLLER*/
-#define TIME_PLOT	2	//ms
+#define TIME_PLOT	10	//ms
 
 /*DRIVER*/
-#define TX_BUF_SIZE   		2048
+#define TX_BUF_SIZE   		8192
 #define HEADER_INDICATOR	0xFE
 #define FOOTER_INDICATOR	0xFD
 #define MAX_PACKET_LENGTH	64

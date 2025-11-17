@@ -110,7 +110,7 @@ public:
 		if (pool_ == nullptr)
 			Error_Handler();
 
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		void *mem = pool_->Alloc();
 		if (!mem) {
 #ifdef RELEASE

@@ -20,7 +20,7 @@ public:
 			return;
 		}
 
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		if (finished != nullptr) {
 			queue_.push(CALLBACK);
 			queue_.push(finished->index_);
@@ -28,7 +28,6 @@ public:
 			queue_.push(VOID);
 		}
 		queue_.push(event->index_);
-		ENABLE_INTERRUPT;
 
 		next_();
 	}
@@ -38,7 +37,7 @@ public:
 		if (queue_.freeSpace() < sizeof(E) + 3)
 			return;
 
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		if (finished != nullptr) {
 			queue_.push(CALLBACK);
 			queue_.push(finished->index_);
@@ -66,8 +65,6 @@ public:
 			memcpy(mem, &e, sizeof(E));
 			pushFixed(event->index_, (uint8_t*) &mem, sizeof(void*));
 		}
-		ENABLE_INTERRUPT;
-
 		next_();
 	}
 
@@ -76,13 +73,12 @@ public:
 			return;
 		}
 
-		DISABLE_INTERRUPT;
+		CRITICAL_SECTION();
 		queue_.push(DELAY);
 		queue_.push((ms >> 24) & 0xFF);
 		queue_.push((ms >> 16) & 0xFF);
 		queue_.push((ms >> 8) & 0xFF);
 		queue_.push(ms & 0xFF);
-		ENABLE_INTERRUPT;
 		next_();
 	}
 
@@ -173,7 +169,7 @@ private:
 	EventQueue &events_ = Engine::instance().events();
 	Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::timeout_));
 	Queue<uint8_t> &queue_;
-	bool busy_ = false;
+	volatile bool busy_ = false;
 };
 }
 
