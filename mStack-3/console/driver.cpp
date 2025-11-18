@@ -88,7 +88,7 @@ M_EVENT_HANDLER(console::Driver, send) {
 }
 
 bool console::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *data) {
-    CRITICAL_SECTION();
+    CRITICAL_SECTION;
 
     // compute free space in circular buffer
     // free = (tail - head - 1 + SIZE) % SIZE  (we leave 1 byte free to disambiguate full/empty)

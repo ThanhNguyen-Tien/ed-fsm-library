@@ -20,7 +20,7 @@ public:
 			return;
 		}
 
-		CRITICAL_SECTION();
+		CRITICAL_SECTION;
 		if (finished != nullptr) {
 			queue_.push(CALLBACK);
 			queue_.push(finished->index_);
@@ -37,7 +37,7 @@ public:
 		if (queue_.freeSpace() < sizeof(E) + 3)
 			return;
 
-		CRITICAL_SECTION();
+		CRITICAL_SECTION;
 		if (finished != nullptr) {
 			queue_.push(CALLBACK);
 			queue_.push(finished->index_);
@@ -73,7 +73,7 @@ public:
 			return;
 		}
 
-		CRITICAL_SECTION();
+		CRITICAL_SECTION;
 		queue_.push(DELAY);
 		queue_.push((ms >> 24) & 0xFF);
 		queue_.push((ms >> 16) & 0xFF);

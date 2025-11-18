@@ -27,7 +27,7 @@ void Engine::run() {
 	while (true) {
 		if (events_.next())
 			continue;
-		WAIT_FOR_INTERUPT;
+		WAIT_FOR_INTERRUPT;
 	}
 }
 

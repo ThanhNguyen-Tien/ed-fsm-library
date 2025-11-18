@@ -52,7 +52,7 @@ public:
 	}
 
 	inline void post(uint8_t index) {
-		CRITICAL_SECTION();
+		CRITICAL_SECTION;
 		uint16_t avail = evQueue.freeSpace();
 		if (avail < 1) {
 #ifdef RELEASE
@@ -71,7 +71,7 @@ public:
 
 	inline void pushFixed(uint8_t index, uint8_t *data, size_t size) override
 	{
-		CRITICAL_SECTION();
+		CRITICAL_SECTION;
 		uint16_t avail = evQueue.freeSpace();
 		if (avail < size + 1) {
 #ifdef RELEASE

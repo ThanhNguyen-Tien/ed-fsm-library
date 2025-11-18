@@ -5,7 +5,7 @@
 #define TIME_PLOT	10	//ms
 
 /*DRIVER*/
-#define TX_BUF_SIZE   		8192
+#define TX_BUF_SIZE   		2048
 #define HEADER_INDICATOR	0xFE
 #define FOOTER_INDICATOR	0xFD
 #define MAX_PACKET_LENGTH	64
