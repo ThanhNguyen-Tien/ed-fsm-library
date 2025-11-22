@@ -50,6 +50,16 @@ protected:
 };
 }
 
+#define CLASS(name, ...) \
+class name : __VA_ARGS__ { \
+    using CLASS = name; \
+public: \
+    name() = default; \
+    virtual ~name() = default; \
+private: \
+    name(const name&) = delete;	\
+    name& operator=(const name&) = delete;
+
 #define COMPONENT(module, name, ...) \
 namespace module { \
 class name : public core::Component, ##__VA_ARGS__ { \
