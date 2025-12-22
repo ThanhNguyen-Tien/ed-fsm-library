@@ -3,7 +3,7 @@
 
 #include <core/event-queue.h>
 #include <core/timer.h>
-#include <assert.h>
+#include <cassert>
 
 #define LAST_TICK       0xFFFFFFFFFFFFFFFF
 

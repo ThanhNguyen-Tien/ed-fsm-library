@@ -2,6 +2,9 @@
 #define OSC_SINGLE_H
 #include <core/engine.h>
 #include <core/event.h>
+#include <hydra/controller.h>
+#include <oscilloscope/data.h>
+
 
 namespace osc
 {
@@ -9,12 +12,13 @@ namespace osc
 class Single: public core::Component
 {
 public:
-    Single(uint8_t channel);
+	Single(uint8_t channel);
     typedef void (osc::Single::*State) (uint16_t);
-    inline void plot(uint16_t val)
+
+    inline void plot(uint16_t v)
     {
-        (this->*state_)(val);
-        lastVal_ = val;
+        (this->*state_)(v);
+        channel_.lastVal = v;
     }
 private:
     void idle_(uint16_t){}
@@ -23,16 +27,13 @@ private:
     void first_(uint16_t v);
     void adding_(uint16_t v);
 private:
-    uint8_t data_[1200];
-    State state_ = &osc::Single::thresholding_;
+    State state_ = & osc::Single::thresholding_;
     uint16_t min_ = 65535;
     uint16_t max_ = 0;
     int16_t threshold_ = -1;
-    uint16_t index_ = 0;
-    uint16_t lastVal_;
-    uint16_t countIndex_ = 0;
-    uint16_t total_;
-    uint8_t channel_;
+
+    Data channel_;
+    uint16_t total_ = 0;
 private:
     void flush_();
     core::EmptyEvent flushEvent_ = core::EmptyEvent(this, (core::EmptyEvent::Handler)&Single::flush_);

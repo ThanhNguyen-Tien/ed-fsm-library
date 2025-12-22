@@ -1,5 +1,5 @@
 #include <oscilloscope/triple.h>
-#include <console/controller.h>
+#include <hydra/controller.h>
 
 osc::Triple::Triple(uint8_t c1, uint16_t c2, uint16_t c3)
 {
@@ -25,7 +25,7 @@ void osc::Triple::thresholding_(uint16_t v1, uint16_t v2, uint16_t v3)
         min_ = 65535;
         max_ = 0;
         total_ = 0;
-//        console::Controller::instance().printf("Auto detect threshold:%d", threshold_);
+//        hydra::Controller::instance().printf("Auto detect threshold:%d", threshold_);
         state_ = &osc::Triple::probing_;
     }
 }

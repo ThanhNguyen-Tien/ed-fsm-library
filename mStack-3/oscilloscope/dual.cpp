@@ -1,5 +1,5 @@
 #include <oscilloscope/dual.h>
-#include <console/controller.h>
+#include <hydra/controller.h>
 
 osc::Dual::Dual(uint8_t c1, uint16_t c2)
 {
@@ -24,7 +24,7 @@ void osc::Dual::thresholding_(uint16_t v1, uint16_t v2)
         min_ = 65535;
         max_ = 0;
         total_ = 0;
-//        console::Controller::instance().printf("Auto detect threshold:%d", threshold_);
+//        hydra::Controller::instance().printf("Auto detect threshold:%d", threshold_);
         state_ = &osc::Dual::probing_;
     }
 }
@@ -70,32 +70,26 @@ void osc::Dual::adding_(uint16_t v1, uint16_t v2)
 
 void osc::Dual::c1Flush_()
 {
-	static uint32_t count = 0;
     if (c1_.flush())
     {
         c2FlushEvent_.post();
-        count = 0;
     }
     else
     {
         c1FlushEvent_.post();
-        count++;
     }
 }
 
 void osc::Dual::c2Flush_()
 {
-	static uint32_t count = 0;
     if (c2_.flush())
     {
         state_ = &osc::Dual::probing_;
-        count = 0;
         //uart::Controller::instance().print("finish flush c2");
     }
     else
     {
         c2FlushEvent_.post();
-        count++;
     }
 }
 

@@ -1,6 +1,6 @@
 #ifndef OSC_DATA_H
 #define OSC_DATA_H
-#include <console/controller.h>
+#include <hydra/controller.h>
 
 namespace osc {
 
@@ -24,7 +24,7 @@ struct Data
     void add(uint16_t v)
     {
         int16_t d = v - lastVal;
-        if ((d > 127) || (d < -127) || (buffer[countIndex] > 80))
+        if ((d > 127) || (d < -127) || (buffer[countIndex] > 120))
         {
             countIndex = index;
             buffer[index++] = 1;
@@ -41,15 +41,18 @@ struct Data
     bool flush()
     {
         uint8_t count = buffer[index];
-        if (console::Controller::instance().sendOSC(channel, count+1, countIndex, buffer+index+1))
+        if(count != 0)
         {
-            countIndex += count;
-            index += count+2;
-            if ((countIndex > 999) || (index > 1198))
+            if(hydra::Controller::instance().sendOSC(channel, count+1, countIndex, buffer+index+1))
             {
-                index = 0;
-                countIndex = 0;
-                return true;
+        		countIndex += count;
+        		index += count+2;
+        		if ((countIndex > 999) || (index > 1198))
+        		{
+        			index = 0;
+        			countIndex = 0;
+        			return true;
+        		}
             }
         }
         return false;

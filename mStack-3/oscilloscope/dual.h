@@ -3,7 +3,7 @@
 
 #include <core/engine.h>
 #include <core/event.h>
-#include <console/controller.h>
+#include <hydra/controller.h>
 #include <oscilloscope/data.h>
 
 

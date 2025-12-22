@@ -2,7 +2,7 @@
 #define OSC_QUADRUPLE_H
 
 #include <core/engine.h>
-#include <console/controller.h>
+#include <hydra/controller.h>
 #include <oscilloscope/data.h>
 #include <core/event.h>
 

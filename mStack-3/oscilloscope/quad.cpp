@@ -1,5 +1,6 @@
 #include <oscilloscope/quad.h>
-#include <console/controller.h>
+#include <hydra/controller.h>
+#include <hydra/log.h>
 
 osc::Quad::Quad(uint8_t c1, uint16_t c2, uint16_t c3, uint16_t c4)
 {
@@ -23,10 +24,11 @@ void osc::Quad::thresholding_(uint16_t v1, uint16_t v2, uint16_t v3, uint16_t v4
     if (total_++ > 1000)
     {
         threshold_ = (min_+max_)/2;
+        if(threshold_ < 0) threshold_ += 65535;
         min_ = 65535;
         max_ = 0;
         total_ = 0;
-        console::Controller::instance().printf("Auto detect threshold:%d", threshold_);
+        LOG_INFO_PRINTF("Auto detect threshold:%d", threshold_);
         state_ = &osc::Quad::probing_;
     }
 }
