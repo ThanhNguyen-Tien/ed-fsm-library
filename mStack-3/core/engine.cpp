@@ -9,10 +9,12 @@ Event::Event() {
 	index_ = Engine::instance().events().registerEvent_(this);
 }
 
-Engine::Engine() : Event(0) {}
+Engine::Engine() : Event(0)
+{
+	events_.registerEvent_(this);
+}
 
 void Engine::init() {
-	events_.registerEvent_(this);
 	pStartTimerEvent_ = new SmallFixedEvent<Timer*>(this,
 					static_cast<SmallFixedEvent<Timer*>::Handler>(&Engine::startTimer_));
 	pStopTimerEvent_ = new SmallFixedEvent<Timer*>(this,
