@@ -4,11 +4,18 @@
 
 namespace osc {
 
+static const uint16_t BUFFER_SIZE = 1200;
+static const uint16_t MAX_INDEX_ADDING = BUFFER_SIZE - 1;
+static const uint16_t MAX_INDEX_FLUSH = BUFFER_SIZE - 2;
+static const uint16_t MAX_TOTAL_SAMPLES_PER_BUF = 1000;
+static const uint16_t MAX_COUNT_INDEX_PER_BUF = MAX_TOTAL_SAMPLES_PER_BUF - 1;
+static const uint8_t MAX_NUM_OF_SAMPLES_PER_PACK = 120;
+
 struct Data
 {
     uint8_t channel;
     uint16_t lastVal;
-    uint8_t buffer[1200];
+    uint8_t buffer[BUFFER_SIZE];
     uint16_t index;
     uint16_t countIndex;
 
@@ -24,7 +31,7 @@ struct Data
     void add(uint16_t v)
     {
         int16_t d = v - lastVal;
-        if ((d > 127) || (d < -127) || (buffer[countIndex] > 120))
+        if ((d > 127) || (d < -127) || (buffer[countIndex] > MAX_NUM_OF_SAMPLES_PER_PACK))
         {
             countIndex = index;
             buffer[index++] = 1;
@@ -47,7 +54,7 @@ struct Data
             {
         		countIndex += count;
         		index += count+2;
-        		if ((countIndex > 999) || (index > 1198))
+        		if ((countIndex > MAX_COUNT_INDEX_PER_BUF) || (index > MAX_INDEX_FLUSH))
         		{
         			index = 0;
         			countIndex = 0;

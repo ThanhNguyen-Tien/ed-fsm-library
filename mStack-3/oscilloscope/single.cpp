@@ -1,5 +1,5 @@
 #include <oscilloscope/Single.h>
-#include <hydra/controller.h>
+#include <hydra/log.h>
 
 osc::Single::Single(uint8_t channel)
 {
@@ -17,20 +17,20 @@ void osc::Single::thresholding_(uint16_t v)
 
     if (v < min_) min_ = v;
     if (v > max_) max_ = v;
-    if (total_++ > 1000)
+    if (total_++ > MAX_TOTAL_SAMPLES_PER_BUF)
     {
         threshold_ = (min_+max_)/2;
         min_ = 65535;
         max_ = 0;
         total_ = 0;
-//        hydra::Controller::instance().printf("Auto detect threshold:%d", threshold_);
+        LOG_INFO_PRINTF("Auto detect threshold:%d", threshold_);
         state_ = &osc::Single::probing_;
     }
 }
 
 void osc::Single::probing_(uint16_t v)
 {
-    if (++total_ > 1000)
+    if (++total_ > MAX_TOTAL_SAMPLES_PER_BUF)
     {
         total_ = 0;
         threshold_ = -1;
@@ -55,7 +55,7 @@ void osc::Single::adding_(uint16_t v)
     channel_.add(v);
 
     total_++;
-    if ((total_ > 1000) || (channel_.index > 1199))
+    if ((total_ > MAX_TOTAL_SAMPLES_PER_BUF) || (channel_.index > MAX_INDEX_ADDING))
     {
         state_ = &osc::Single::idle_;
         total_ = 0;
@@ -75,20 +75,3 @@ void osc::Single::flush_()
     	flushEvent_.post();
     }
 }
-
-//void osc::Single::c2Flush_()
-//{
-//	static uint32_t count = 0;
-//    if (c2_.flush())
-//    {
-//        state_ = &osc::Single::probing_;
-//        count = 0;
-//        //uart::Controller::instance().print("finish flush c2");
-//    }
-//    else
-//    {
-//        c2FlushEvent_.post();
-//        count++;
-//    }
-//}
-

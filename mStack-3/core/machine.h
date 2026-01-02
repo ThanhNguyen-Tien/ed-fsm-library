@@ -161,7 +161,9 @@ public: \
 	static name& instance() { static name instance; return instance; } \
 private: \
 	virtual ~name() = default; \
-	name() = default;
+	name() = default; \
+    name(const name&) = delete;	\
+    name& operator=(const name&) = delete;
 
 #define _PAYLOAD_MACHINE_3(module, name, type, ...)\
 namespace module { \
@@ -172,7 +174,9 @@ public:\
 	static name& instance() { static name instance(0); return instance; } \
 private:\
 	virtual ~name() = default; \
-	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {}
+	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {} \
+    name(const name&) = delete;	\
+    name& operator=(const name&) = delete;
 
 #define _PAYLOAD_MACHINE_4(module, name, type, numOfBlock, ...)\
 namespace module { \
@@ -183,7 +187,9 @@ public: \
 	static name& instance() { static name instance(numOfBlock);return instance; } \
 private:\
 	virtual ~name() = default; \
-	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {}
+	explicit name(uint32_t numOfMem = 0) : Base(numOfMem) {} \
+    name(const name&) = delete;	\
+    name& operator=(const name&) = delete;
 
 #define PAYLOAD_MACHINE(...) _M_MACRO_4(__VA_ARGS__, _PAYLOAD_MACHINE_4, _PAYLOAD_MACHINE_3)(__VA_ARGS__)
 

@@ -26,8 +26,8 @@
 
 //#else
 //
-//#define LOG_PRINT(...)
-//#define LOG_PRINTF(...)
+//#define LOG_DEBUG_PRINT(...)
+//#define LOG_DEBUG_PRINTF(...)
 //
 //#endif
 

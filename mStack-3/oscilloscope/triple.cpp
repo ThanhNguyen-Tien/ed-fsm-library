@@ -1,5 +1,5 @@
 #include <oscilloscope/triple.h>
-#include <hydra/controller.h>
+#include <hydra/log.h>
 
 osc::Triple::Triple(uint8_t c1, uint16_t c2, uint16_t c3)
 {
@@ -19,20 +19,20 @@ void osc::Triple::thresholding_(uint16_t v1, uint16_t v2, uint16_t v3)
 
     if (v1 < min_) min_ = v1;
     if (v1 > max_) max_ = v1;
-    if (total_++ > 1000)
+    if (total_++ > MAX_TOTAL_SAMPLES_PER_BUF)
     {
         threshold_ = (min_+max_)/2;
         min_ = 65535;
         max_ = 0;
         total_ = 0;
-//        hydra::Controller::instance().printf("Auto detect threshold:%d", threshold_);
+        LOG_INFO_PRINTF("Auto detect threshold:%d", threshold_);
         state_ = &osc::Triple::probing_;
     }
 }
 
 void osc::Triple::probing_(uint16_t v1, uint16_t v2, uint16_t v3)
 {
-    if (++total_ > 1000)
+    if (++total_ > MAX_TOTAL_SAMPLES_PER_BUF)
     {
         total_ = 0;
         threshold_ = -1;
@@ -61,7 +61,7 @@ void osc::Triple::adding_(uint16_t v1, uint16_t v2, uint16_t v3)
     c3_.add(v3);
 
     total_++;
-    if ((total_ > 1000) || (c1_.index > 1199) || (c2_.index > 1199)|| (c3_.index > 1199))
+    if ((total_ > MAX_TOTAL_SAMPLES_PER_BUF) || (c1_.index > MAX_INDEX_ADDING) || (c2_.index > MAX_INDEX_ADDING)|| (c3_.index > MAX_INDEX_ADDING))
     {
         state_ = &osc::Triple::idle_;
         total_ = 0;
