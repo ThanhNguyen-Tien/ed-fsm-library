@@ -3,19 +3,15 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#ifndef NDEBUG
-#include <assert.h>
-
-#define ASSERT(x) assert(x)
-
-#endif
+#include <stddef.h>
 
 typedef void (*EventHandler)(void*);
 
-typedef struct EvTimeExecution{
-    uint32_t min_time;
-    uint32_t max_time;
-    uint32_t last_exec_time;
+typedef struct EvTimeExecution
+{
+	uint32_t min_time;
+	uint32_t max_time;
+	uint32_t last_exec_time;
 } event_time_exe_t;
 
 typedef struct Event
@@ -26,27 +22,27 @@ typedef struct Event
 	EventHandler handler;
 	uint8_t size;
 	uint8_t index;
-}event_t;
+} event_t;
 
 typedef struct EventQueue
 {
-	event_t** events;
+	event_t **events;
 
 	uint16_t size;
 	uint16_t minFree;
-	uint8_t* first;
-	uint8_t* last;
-	uint8_t* inPtr;
-	uint8_t* outPtr;
+	uint8_t *first;
+	uint8_t *last;
+	uint8_t *inPtr;
+	uint8_t *outPtr;
 
-	uint8_t* dataBuf;
+	uint8_t *dataBuf;
 	uint8_t maxEvSize;
 	uint8_t maxPoolSize;
 	uint8_t poolSize;
-}event_queue_t;
+} event_queue_t;
 
-void Event_Init(event_t* ev, uint8_t size, EventHandler handler);
-bool Event_Post(uint8_t index, void* data);
+void Event_Init(event_t *ev, uint8_t size, EventHandler handler);
+bool Event_Post(uint8_t index, void *data);
 bool Event_Loop();
 
 #define M_EVENT_DEF(name)\
@@ -86,4 +82,5 @@ bool Event_Loop();
 #define _EVENT_INIT_CHOOSER(count) _EVENT_INIT_CHOOSER2(count)
 
 #define M_EVENT_INIT(...) _EVENT_INIT_CHOOSER(_EVENT_NARGS(__VA_ARGS__))(__VA_ARGS__)
+
 #endif /*CORE_EVENT_H*/
