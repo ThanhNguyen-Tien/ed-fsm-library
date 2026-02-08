@@ -40,6 +40,6 @@ private:\
     void name##Handler##_() code
 #define M_TIMER(...) _M_MACRO_2(__VA_ARGS__, _M_TIMER_2, _M_TIMER)(__VA_ARGS__)
 
-#define M_TIMER_HANDLER(cls,name) void cls::name##Handler##_()
+#define M_TIMER_HANDLER(cls,name) void cls::name##Handler##_(void)
 
 #endif // TIMER_H

@@ -31,7 +31,7 @@ void hydra::Driver::ReceiveType_(uint8_t data) {
 			rxState_ = &Driver::ReceiveData_;
 		else
 			rxState_ = &Driver::ReceiveChecksum_;
-	}
+	} else {}
 }
 
 void hydra::Driver::ReceiveData_(uint8_t data) {
@@ -50,18 +50,18 @@ void hydra::Driver::ReceiveChecksum_(uint8_t data) {
 void hydra::Driver::ReceiveFooter_(uint8_t data) {
 	if (data == FOOTER_INDICATOR) {
 		Controller::instance().processCommand(rxType_, rxLength_, rxBuffer_);
-	}
+	} else {}
 	rxState_ = &Driver::ReceiveHeader_;
 }
 
 #ifdef USING_DMA
 M_EVENT_HANDLER(hydra::Driver, receive, uint16_t) {
-	if (event == MAX_PACKET_LENGTH)
+	if ((event & 0xFF) == MAX_PACKET_LENGTH)
 	{
 		const char *text = "HYDRA OVER RX";
 		int l = strlen(text) + 1;
 		sendPacket(Controller::CommandType::LogCritical, l, (uint8_t*) text);
-	}
+	} else {}
 	for (uint16_t i = 0; i < (event & 0xFF); i++)
 	{
 		uint8_t c = rxBufferDma_[((event >> 8) & 0xFF) + i];
@@ -74,14 +74,14 @@ M_EVENT_HANDLER(hydra::Driver, send) {
         // move tail forward by dmaChunkLen_
         txTail_ = (txTail_ + dmaChunkLen_) % TX_BUF_SIZE;
         dmaChunkLen_ = 0;
-    }
+    } else {}
 
     // If there's more data, start next chunk
     if (txHead_ == txTail_) {
         // buffer empty
         sending_ = false;
         return;
-    }
+    } else {}
 
     // start next chunk (will check if DMA stream is free)
     transferDma_();
@@ -131,7 +131,7 @@ bool hydra::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *dat
     if (!sending_) {
         sending_ = true;
         transferDma_();
-    }
+    } else {}
 
     return true;
 }
@@ -142,11 +142,10 @@ M_EVENT_HANDLER(hydra::Driver, receive, uint8_t) {
 
 bool hydra::Driver::sendPacket(uint16_t type, uint8_t length,
 		const uint8_t *data) {
-	uint8_t checksum = 0;
 	if (txQueue_.freeSpace() < length + 6)
 		return false;
+	uint8_t checksum = 0;
 	txQueue_.push(HEADER_INDICATOR);
-	checksum += (uint8_t) HEADER_INDICATOR;
 	txQueue_.push(length);
 	checksum += length;
 	txQueue_.push((type >> 8) & 0xFF);

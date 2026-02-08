@@ -48,6 +48,7 @@ void hydra::HAL::init()
 
 HYDRA_ISR_HANDLER()
 {
+	core::Engine::instance().isrEnter();
     if (LL_USART_IsActiveFlag_FE(HYDRA_PORT) ||
         LL_USART_IsActiveFlag_NE(HYDRA_PORT) ||
         LL_USART_IsActiveFlag_ORE(HYDRA_PORT) ||
@@ -98,6 +99,7 @@ HYDRA_ISR_HANDLER()
 
 DMA_TX_ISR()
 {
+	core::Engine::instance().isrEnter();
 	if (DMA_TX_TC_ACTIVE())
 	{
 		DMA_TX_TC_CLEAR();
@@ -111,6 +113,7 @@ DMA_TX_ISR()
 
 DMA_RX_ISR()
 {
+	core::Engine::instance().isrEnter();
 	if (DMA_RX_TE_ACTIVE())
 	{
 		/* Call Error function */
@@ -141,6 +144,7 @@ void hydra::HAL::write(uint8_t c)
 
 HYDRA_ISR_HANDLER()
 {
+	core::Engine::instance().isrEnter();
 	if (LL_USART_IsActiveFlag_RXNE(HYDRA_PORT)
 			&& LL_USART_IsEnabledIT_RXNE(HYDRA_PORT))
 	{

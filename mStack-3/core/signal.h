@@ -39,7 +39,7 @@ public:
 				event_->post(e);
 			else
 				event_->execute_(e);
-		}
+		} else {}
 	}
 private:
 	EV *event_ = nullptr;
@@ -52,7 +52,7 @@ public:
 		for (Connection *it = connections_; it != nullptr; it = it->next) {
 			if (it->event == event) {
 				return;
-			}
+			} else {}
 		}
 
 		Connection *con = new Connection;
@@ -72,7 +72,7 @@ public:
 				}
 				delete it;
 				return;
-			}
+			} else {}
 			pre = it;
 		}
 	}
@@ -93,7 +93,7 @@ public:
 					it->event->post();
 				else
 					it->event->execute_();
-			}
+			} else {}
 		}
 	}
 };
@@ -108,7 +108,7 @@ public:
 					it->event->post(e);
 				else
 					it->event->execute_(e);
-			}
+			} else {}
 		}
 	}
 };

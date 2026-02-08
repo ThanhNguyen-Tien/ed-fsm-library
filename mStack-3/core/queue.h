@@ -38,14 +38,16 @@ public:
 
 	void push(const T &val) {
 		T *next = inPtr_ + 1;
+
 		if (next == last_) {
 			next = first_;
-		}
+		} else {}
+
 		if (next != outPtr_) // queue not full
 				{
 			*inPtr_ = val;
 			inPtr_ = next;
-		}
+		} else {}
 	}
 
 	T pop() {
@@ -55,7 +57,7 @@ public:
 			if (outPtr_ == last_)
 				outPtr_ = first_;
 			return ret;
-		}
+		} else {}
 		return T { }; // default value if empty
 	}
 

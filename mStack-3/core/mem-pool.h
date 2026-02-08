@@ -61,7 +61,7 @@ public:
 	// It will call system function.
 	inline void* Alloc() {
 		if (pFreeMemBlock_ == nullptr)	// Pool Full
-				{
+		{
 			return nullptr;
 		}
 
@@ -92,7 +92,7 @@ public:
 				pFreeMemBlock_ = pCurUnit;
 				used_--;
 				break;
-			}
+			} else {}
 			prev = it;
 		}
 	}

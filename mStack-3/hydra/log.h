@@ -1,5 +1,5 @@
-#ifndef CONSOLE_LOG_H_
-#define CONSOLE_LOG_H_
+#ifndef HYDRA_LOG_H_
+#define HYDRA_LOG_H_
 
 //#ifdef DEBUG
 #include <hydra/controller.h>

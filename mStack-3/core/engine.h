@@ -29,7 +29,24 @@ public:
 	// Core API
 	void init() override;
 	void run();
-	inline void tick(); /* must be called in timer interrupt or SysTick interrupt, usually 1ms */
+
+	inline void isrEnter(void)
+	{
+	    if (cpu_stats_.in_idle)
+	    {
+	        uint32_t now = DWT->CYCCNT;
+	        cpu_stats_.idle_cycles += (now - cpu_stats_.last_idle_start);
+	        cpu_stats_.in_idle = 0;
+	    }
+	}
+
+	inline void tick()	/* must be called in timer interrupt or SysTick interrupt, usually 1ms */
+	{
+		if (++tickCount_ >= nextTick_) {
+			events_.post(index_);
+		}
+	}
+
 	inline uint64_t tickCount() {
 		return tickCount_;
 	}
@@ -37,23 +54,48 @@ public:
 	EventQueue& events() {
 		return events_;
 	}
+	float getCpuLoad()
+	{
+		return cpu_stats_.cpu_load;
+	}
 	uint16_t checkNumOfEvent() {
 		return events_.poolSize_;
 	}
 
 private:
 	Engine();
+	inline void idle_(void)
+	{
+	    cpu_stats_.last_idle_start = DWT->CYCCNT;
+	    cpu_stats_.in_idle = 1;
+
+		WAIT_FOR_INTERRUPT;
+	}
+
+	typedef struct
+	{
+	    uint32_t window_start;
+	    uint32_t cpu_load;
+
+	    uint32_t idle_cycles;
+	    uint32_t last_idle_start;
+	    uint8_t  in_idle;
+	} cpu_stats_t;
+
+	volatile cpu_stats_t cpu_stats_;
 	void execute(AbstractEventQueue *queue) override;
 
 	// Timer management
 	void registerTimer_(Timer *const&timer);
 	void startTimer_(Timer *const&timer);
 	void stopTimer_(Timer *const&timer);
+	void calculateCpuLoadTimerHandler_();
 
 private:
 	// Data members
 	FixedEvent<Timer*> *pStartTimerEvent_ = nullptr;
 	FixedEvent<Timer*> *pStopTimerEvent_ = nullptr;
+	Timer *pCalculateCpuLoadTimer_ = nullptr;
 	Timer *timers_ = nullptr;
 	Timer *activeTimers_ = nullptr;
 
@@ -64,11 +106,6 @@ private:
 	friend class Timer;
 };
 
-inline void Engine::tick() {
-	if (++tickCount_ >= nextTick_) {
-		events_.post(index_);
-	}
-}
 }
 
 #ifdef DEBUG

@@ -58,7 +58,7 @@ public:
 			currentState_ = nextState_;
 			this->nextEvent_ = ENTER;
 			(this->*currentState_)();
-		}
+		} else {}
 	}
 
 protected:
@@ -138,7 +138,7 @@ public:
 			currentState_ = nextState_;
 			this->nextEvent_ = ENTER;
 			(this->*currentState_)();
-		}
+		} else {}
 	}
 
 protected:

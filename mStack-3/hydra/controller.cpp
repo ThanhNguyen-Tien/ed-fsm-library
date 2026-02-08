@@ -70,7 +70,7 @@ void hydra::Controller::processCommand(uint16_t type, uint8_t length, uint8_t* d
 		{
 			(*it->handler)(type, length,data);
 			break;
-		}
+		} else {}
 		it=it->next;
 	}
 }

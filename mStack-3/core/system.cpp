@@ -10,7 +10,9 @@ extern "C" {
 void SystemClock_Config(void);
 
 void SysTick_Handler(void) {
-    core::Engine::instance().tick();
+	core::Engine& engine = core::Engine::instance();
+	engine.isrEnter();
+    engine.tick();
 }
 
 void systemInit(void) {

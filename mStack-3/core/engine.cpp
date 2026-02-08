@@ -1,7 +1,7 @@
 #include <core/engine.h>
 #include <core/system.h>
 #include <core/event.h>
-#include <console/log.h>
+#include <hydra/log.h>
 
 using namespace core;
 
@@ -19,7 +19,10 @@ void Engine::init() {
 					static_cast<SmallFixedEvent<Timer*>::Handler>(&Engine::startTimer_));
 	pStopTimerEvent_ = new SmallFixedEvent<Timer*>(this,
 			static_cast<SmallFixedEvent<Timer*>::Handler>(&Engine::stopTimer_));
+	pCalculateCpuLoadTimer_ = new Timer(this, static_cast<Timer::Handler>(&Engine::calculateCpuLoadTimerHandler_));
+
 	systemInit();
+	pCalculateCpuLoadTimer_->start(1000);
 }
 
 void Engine::run() {
@@ -29,7 +32,7 @@ void Engine::run() {
 	while (true) {
 		if (events_.next())
 			continue;
-		WAIT_FOR_INTERRUPT;
+		idle_();
 	}
 }
 
@@ -50,13 +53,13 @@ void Engine::startTimer_(Timer *const&timer) {
 			timer->next_ = activeTimers_;
 			activeTimers_ = timer;
 			break;
-		}
+		} else {}
 		prev = it;
 	}
 
 	if (nextTick_ > timer->nextTick_) {
 		nextTick_ = timer->nextTick_;
-	}
+	} else {}
 }
 
 void Engine::stopTimer_(Timer *const&timer) {
@@ -91,11 +94,23 @@ void Engine::execute(AbstractEventQueue *queue) {
 		next = it->next_;
 		if (tickCount_ >= it->nextTick_) {
 			it->run_();
-		}
+		} else {}
 		if (min > it->nextTick_) {
 			min = it->nextTick_;
-		}
+		} else {}
 		it = next;
 	}
 	nextTick_ = min;
+}
+
+void Engine::calculateCpuLoadTimerHandler_()
+{
+    uint32_t now = DWT->CYCCNT;
+    uint32_t elapsed = now - cpu_stats_.window_start;
+
+	cpu_stats_.cpu_load =
+		((float)((elapsed - cpu_stats_.idle_cycles)) / (float)elapsed) * 100;
+
+	cpu_stats_.idle_cycles = 0;
+	cpu_stats_.window_start = now;
 }
