@@ -23,6 +23,26 @@ public:
 		this->numOfByteHeaps_ += val;
 	}
 
+	void resetEventsMeasurements()
+	{
+#ifdef MONITOR_EVENT_TIME_EXECUTION
+		for (size_t i = 0; i < EVENT_POOL_SIZE; i++)
+		{
+		    Event* ev = events_[i];
+		    if (ev == nullptr)
+		        continue;
+
+		    ev->timeExecution.min_time = UINT32_MAX;
+		    ev->timeExecution.max_time = 0U;
+		    ev->timeExecution.value    = 0U;
+
+		    ev->latency.min_time = UINT32_MAX;
+		    ev->latency.max_time = 0U;
+		    ev->latency.value    = 0U;
+		}
+#endif
+	}
+
 	inline bool next() {
 
 		if (evQueue.empty()) {
@@ -33,12 +53,15 @@ public:
 #ifdef MONITOR_EVENT_TIME_EXECUTION
 			Event *e = events_[index];
 			uint32_t exec_start = DWT->CYCCNT;
+			e->latency.value = exec_start - e->timestamp;
 			e->execute(this);
-			e->timeExecution.last_exec_time = DWT->CYCCNT - exec_start;
-			if (e->timeExecution.last_exec_time > e->timeExecution.max_time)
-				e->timeExecution.max_time = e->timeExecution.last_exec_time;
-			if (e->timeExecution.last_exec_time < e->timeExecution.min_time)
-				e->timeExecution.min_time = e->timeExecution.last_exec_time;
+			e->timeExecution.value = DWT->CYCCNT - exec_start;
+
+			if (e->latency.value > e->latency.max_time) { e->latency.max_time = e->latency.value; } else {}
+			if (e->latency.value < e->latency.min_time) { e->latency.min_time = e->latency.value; } else {}
+
+			if (e->timeExecution.value > e->timeExecution.max_time) { e->timeExecution.max_time = e->timeExecution.value; } else {}
+			if (e->timeExecution.value < e->timeExecution.min_time) { e->timeExecution.min_time = e->timeExecution.value; } else {}
 #else
 			Event *e = events_[index];
 			e->execute(this);

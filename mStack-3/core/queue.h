@@ -37,7 +37,7 @@ public:
 	}
 
 	void push(const T &val) {
-		T *next = inPtr_ + 1;
+		volatile T *next = inPtr_ + 1;
 
 		if (next == last_) {
 			next = first_;
@@ -65,8 +65,8 @@ private:
 	uint16_t size_;
 	T *first_;
 	T *last_;
-	T *inPtr_;
-	T *outPtr_;
+	volatile T *inPtr_;
+	volatile T *outPtr_;
 };
 }
 

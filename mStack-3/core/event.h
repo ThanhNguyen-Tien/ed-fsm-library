@@ -14,6 +14,7 @@ public:
 	}
 	void post() {
 		Engine::instance().events().post(this->index_);
+		this->timestamp = DWT->CYCCNT;
 	}
 
 private:
@@ -74,6 +75,7 @@ public:
 	{
 		uint8_t *ptr = (uint8_t*) &e;
 		Engine::instance().events().pushFixed(this->index_, ptr, sizeof(E));
+		this->timestamp = DWT->CYCCNT;
 	}
 
 private:
@@ -110,7 +112,6 @@ public:
 		if (pool_ == nullptr)
 			Error_Handler();
 
-		CRITICAL_SECTION;
 		void *mem = pool_->Alloc();
 		if (!mem) {
 #ifdef RELEASE
@@ -123,6 +124,7 @@ public:
 		memcpy(mem, &e, sizeof(E));
 		Engine::instance().events().pushFixed(this->index_, (uint8_t*) &mem,
 				sizeof(void*));
+		this->timestamp = DWT->CYCCNT;
 	}
 
 private:
