@@ -67,16 +67,18 @@ private:
 
 private:
 	uint16_t rxType_;
+    volatile uint16_t txHead_ = 0;
+    volatile uint16_t txTail_ = 0;
+    volatile uint16_t dmaChunkLen_ = 0;
+
+    uint8_t txBuf_[TX_BUF_SIZE];
+    static_assert((TX_BUF_SIZE & (TX_BUF_SIZE - 1)) == 0, "TX_BUF_SIZE must be a power of 2");
+    static constexpr uint16_t MASK_ = TX_BUF_SIZE - 1;
 
     uint8_t rxBuffer_[MAX_PACKET_LENGTH];
     uint8_t rxBufferDma_[MAX_PACKET_LENGTH];
     uint8_t rxLength_, checksum_;
     uint8_t rxIndex_;
-
-    uint8_t txBuf_[TX_BUF_SIZE];
-    uint16_t txHead_ = 0;
-    uint16_t txTail_ = 0;
-    volatile uint16_t dmaChunkLen_ = 0;
 
     volatile bool sending_ = false;
 COMPONENT_END

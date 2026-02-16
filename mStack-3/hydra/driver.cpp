@@ -72,7 +72,8 @@ M_EVENT_HANDLER(hydra::Driver, receive, uint16_t) {
 M_EVENT_HANDLER(hydra::Driver, send) {
     if (dmaChunkLen_ != 0) {
         // move tail forward by dmaChunkLen_
-        txTail_ = (txTail_ + dmaChunkLen_) % TX_BUF_SIZE;
+//        txTail_ = (txTail_ + dmaChunkLen_) % TX_BUF_SIZE;
+        txTail_ = (txTail_ + dmaChunkLen_) & MASK_;
         dmaChunkLen_ = 0;
     } else {}
 
@@ -92,7 +93,8 @@ bool hydra::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *dat
 
     // compute free space in circular buffer
     // free = (tail - head - 1 + SIZE) % SIZE  (we leave 1 byte free to disambiguate full/empty)
-    uint16_t free_space = (txTail_ + TX_BUF_SIZE - txHead_ - 1) % TX_BUF_SIZE;
+//    uint16_t free_space = (txTail_ + TX_BUF_SIZE - txHead_ - 1) % TX_BUF_SIZE;
+    uint16_t free_space = (txTail_ - txHead_ - 1) & MASK_;
     uint16_t required = (uint16_t)length + 6; // HEADER + LEN + TYPE(2) + data + checksum + FOOTER
 
     if (free_space < required) {
@@ -105,7 +107,8 @@ bool hydra::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *dat
     // lambda to push a byte into circular buffer
     auto push_byte = [&](uint8_t b) {
         txBuf_[txHead_] = b;
-        txHead_ = (txHead_ + 1) % TX_BUF_SIZE;
+//        txHead_ = (txHead_ + 1) % TX_BUF_SIZE;
+        txHead_ = (txHead_ + 1) & MASK_;
     };
 
     // Build packet in circular buffer
@@ -125,7 +128,8 @@ bool hydra::Driver::sendPacket(uint16_t type, uint8_t length, const uint8_t *dat
     push_byte(checksum);
     push_byte(FOOTER_INDICATOR);
 
-	uint16_t used = (txHead_ + TX_BUF_SIZE - txTail_) % TX_BUF_SIZE;
+//	uint16_t used = (txHead_ + TX_BUF_SIZE - txTail_) % TX_BUF_SIZE;
+	uint16_t used = (txHead_ + TX_BUF_SIZE - txTail_) & MASK_;
 	if (used > statsHighWatermark) statsHighWatermark = used;
 
     if (!sending_) {
