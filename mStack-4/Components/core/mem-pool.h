@@ -18,10 +18,6 @@ namespace core {
 template<typename T>
 class MemPool {
 private:
-
-    typedef unsigned char  uint8_t;
-    typedef unsigned int   uint32_t;
-
     typedef uint8_t Index;
 
     static const Index INVALID_INDEX = 0xFF;

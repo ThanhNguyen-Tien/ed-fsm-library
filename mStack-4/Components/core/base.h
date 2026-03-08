@@ -18,6 +18,10 @@ public:
 union EventPayload {
 	uint32_t u;
 	void* p;
+
+    EventPayload() : u(0) {}
+    EventPayload(uint32_t v) : u(v) {}
+    EventPayload(void* v) : p(v) {}
 };
 
 class Event {
@@ -46,7 +50,7 @@ public:
 	virtual ~Event() {}
 
 protected:
-	virtual void execute(EventPayload payload) = 0;
+	virtual void execute(const EventPayload& payload) = 0;
 	Event(uint8_t index) : index_(index) {}
 	uint8_t index_;
 	friend class EventQueue;

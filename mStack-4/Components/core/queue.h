@@ -18,22 +18,42 @@ public:
          assert((size & (size - 1)) == 0); // size must be power of 2
     }
 
-    bool push(const T& v) {
+    T* peek() {
+        if (head_ == tail_)
+            return nullptr;
+
+        return &buf_[tail_ & mask_];
+    }
+
+    T* reserve() {
         uint16_t head = head_;
         uint16_t tail = tail_;
 
         uint16_t used = (uint16_t)(head - tail);
         if (used == size_)
-            return false;   // full
+            return nullptr; // full
 
-        buf_[head & mask_] = v;
+        return &buf_[head & mask_];
+    }
+
+    void commit() {
+        uint16_t head = head_;
+        uint16_t tail = tail_;
+
         head_ = head + 1;
 
-        // ---- track peak ----
-        used++; // after push
+        uint16_t used = (uint16_t)(head + 1 - tail);
         if (used > maxUsed_)
             maxUsed_ = used;
+    }
 
+    bool push(const T& v) {
+        T* s = reserve();
+        if (!s)
+            return false;
+
+        *s = v;
+        commit();
         return true;
     }
 
@@ -47,6 +67,10 @@ public:
         out = buf_[tail & mask_];
         tail_ = tail + 1;
         return true;
+    }
+
+    void pop() {
+        tail_ = tail_ + 1;
     }
 
     inline bool empty() const {
@@ -80,12 +104,12 @@ public:
 
 private:
     T* const buf_;
+//	alignas(32) volatile uint32_t head_ = 0;	// align to cache line to avoid false sharing between head and tail, M7 has 32-byte cache line size
+//	alignas(32) volatile uint32_t tail_ = 0;
+    volatile uint32_t head_ = 0;
+	volatile uint32_t tail_ = 0;
     const uint16_t size_;
     const uint16_t mask_;
-
-    volatile uint16_t head_ = 0;
-    volatile uint16_t tail_ = 0;
-
     volatile uint16_t maxUsed_ = 0;
 };
 }

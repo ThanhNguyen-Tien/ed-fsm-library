@@ -16,7 +16,7 @@ public:
 	virtual ~EventQueue() = default;
 	EventQueue() : evQueue(buffer_, EVENT_QUEUE_SIZE) {}
 
-	uint8_t getMaxPeal() const {
+	uint8_t getMaxPeak() const {
 		return this->evQueue.peakUsed();
 	}
 
@@ -75,16 +75,22 @@ public:
 		return true;
 	}
 
-	inline void postSlot(uint8_t index, EventPayload payload) {
+	inline bool postSlot(uint8_t index, const EventPayload& payload)
+	{
+	    CRITICAL_SECTION_PRIO(1)
 
-		EventSlot_t slot;
-		slot.event_id = static_cast<uint32_t>(index);
-		slot.payload = payload;
-
-		CRITICAL_SECTION_PRIO(1)
-		if(!evQueue.push(slot)) {
-			Error_Handler();	// FIXME: Log error instead of halting system
+		auto* s = evQueue.reserve();
+		if (!s) {
+			Error_Handler();   // queue full
+			return false;
 		}
+
+		s->event_id = index;
+		s->payload  = payload;
+
+		evQueue.commit();
+
+	    return true;
 	}
 
 	inline void post(uint8_t index) {

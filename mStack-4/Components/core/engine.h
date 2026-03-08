@@ -83,7 +83,7 @@ private:
 	} cpu_stats_t;
 
 	volatile cpu_stats_t cpu_stats_;
-	void execute(EventPayload payload) override;
+	void execute(const EventPayload& payload) override;
 
 	// Timer management
 	void registerTimer_(Timer *const&timer);

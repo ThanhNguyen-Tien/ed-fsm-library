@@ -84,15 +84,16 @@ void Engine::delay(uint32_t t) {
 	}
 }
 
-void Engine::execute(EventPayload payload) {
+void Engine::execute(const EventPayload& payload) {
 	UNUSED(payload);
 
 	uint64_t min = LAST_TICK;
+	uint64_t now = tickCount_;
 	Timer *it = activeTimers_;
 	Timer *next;
 	while (it != nullptr) {
 		next = it->next_;
-		if (tickCount_ >= it->nextTick_) {
+		if (now >= it->nextTick_) {
 			it->run_();
 		} else {}
 		if (min > it->nextTick_) {

@@ -1,10 +1,10 @@
 #ifndef CORE_EVENT_H
 #define CORE_EVENT_H
 
-#include <cstdint>
 #include <core/engine.h>
-#include <string.h>
 #include <core/mem-pool.h>
+#include <cstdint>
+#include <string.h>
 #include <cassert>
 
 namespace core {
@@ -14,14 +14,13 @@ public:
 	EmptyEvent(Component *component, Handler handler) :
 			component_(component), handler_(handler) {
 	}
-	void post() {
-		EventPayload p; p.u = 0; // Empty Payload
-		Engine::instance().events().postSlot(this->index_, p);
+	bool post() {
 		this->timestamp = DWT->CYCCNT;
+		return Engine::instance().events().postSlot(index_, (uint32_t)0U);
 	}
 
 private:
-	void execute(EventPayload payload) override {
+	void execute(const EventPayload& payload) override {
 		UNUSED(payload);
 		(component_->*handler_)();
 	}
@@ -45,10 +44,10 @@ public:
 			component_(component), handler_(handler) {
 	}
 
-	virtual void post(const E &e) = 0;
+	virtual bool post(const E &e) = 0;
 
 protected:
-	virtual void execute(EventPayload payload) = 0;
+	virtual void execute(const EventPayload& payload) = 0;
 
 	inline void execute_(const E &e)
 	{
@@ -74,16 +73,15 @@ public:
 	SmallFixedEvent(Component *component, Handler handler) :
 			Base(component, handler) {}
 
-	void post(const E &e) override {
-		EventPayload p;
-		p.u = 0;
+	bool post(const E &e) override {
+		EventPayload p {};
 		memcpy(&p.u, &e, sizeof(E));
-		Engine::instance().events().postSlot(this->index_, p);
 		this->timestamp = DWT->CYCCNT;
+		return Engine::instance().events().postSlot(this->index_, p);
 	}
 
 private:
-	void execute(EventPayload payload) override
+	void execute(const EventPayload& payload) override
 	{
 		E e;
 		memcpy(&e, &payload.u, sizeof(E));
@@ -109,7 +107,7 @@ public:
 			Error_Handler();
 	}
 
-	void post(const E &e) override
+	bool post(const E &e) override
 	{
 		if (pool_ == nullptr)
 			Error_Handler();
@@ -117,21 +115,19 @@ public:
 		void *mem = pool_->Alloc();
 		if (!mem) {
 #ifdef RELEASE
-				return;
+				return false;
 #else
 			Error_Handler();
 #endif
 		}
 
 		memcpy(mem, &e, sizeof(E));
-		EventPayload payload;
-		payload.p = mem; // Payload
-		Engine::instance().events().postSlot(this->index_, payload);
 		this->timestamp = DWT->CYCCNT;
+		return Engine::instance().events().postSlot(this->index_, mem);
 	}
 
 private:
-	void execute(EventPayload payload) override
+	void execute(const EventPayload& payload) override
 	{
 	    E* payloadPtr = static_cast<E*>(payload.p);
 	    (this->component_->*this->handler_)(*payloadPtr);
