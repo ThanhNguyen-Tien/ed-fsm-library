@@ -26,25 +26,24 @@ union EventPayload {
 
 class Event {
 public:
-	typedef struct EvTimeExecution
+	typedef struct EvTime
 	{
 		uint32_t min_time;
 		uint32_t max_time;
 		uint32_t value;
-	} event_time_exe_t;
+	} event_time_t;
 
-	event_time_exe_t timeExecution {
+	event_time_t timeExecution {
 		UINT32_MAX, // min_time
 		0,          // max_time
 		0U          // value
 	};
 
-	event_time_exe_t latency {
+	event_time_t latency {
 		UINT32_MAX, // min_time
 		0,          // max_time
 		0U          // value
 	};
-	volatile uint32_t timestamp;
 
 	Event();
 	virtual ~Event() {}

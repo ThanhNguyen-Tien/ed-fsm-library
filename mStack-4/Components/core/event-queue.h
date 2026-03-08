@@ -9,6 +9,7 @@ namespace core {
 struct EventSlot_t {
 	uint32_t event_id;
 	EventPayload payload;
+	uint32_t timestamp;
 };
 
 class EventQueue {
@@ -61,7 +62,7 @@ public:
 			Event *e = events_[slot.event_id];
 
 			uint32_t exec_start = DWT->CYCCNT;
-			e->latency.value = exec_start - e->timestamp;
+			e->latency.value = exec_start - slot.timestamp;
 			e->execute(slot.payload);
 			e->timeExecution.value = DWT->CYCCNT - exec_start;
 
@@ -101,6 +102,7 @@ public:
 
 		s->event_id = index;
 		s->payload = payload;
+		s->timestamp = DWT->CYCCNT;
 
 		__DMB();	// ensure payload visible before publish
 		evQueue.commit();

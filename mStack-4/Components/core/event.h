@@ -15,7 +15,6 @@ public:
 			component_(component), handler_(handler) {
 	}
 	bool post() {
-		this->timestamp = DWT->CYCCNT;
 		return Engine::instance().events().postSlot(index_, (uint32_t)0U);
 	}
 
@@ -76,7 +75,6 @@ public:
 	bool post(const E &e) override {
 		EventPayload p {};
 		memcpy(&p.u, &e, sizeof(E));
-		this->timestamp = DWT->CYCCNT;
 		return Engine::instance().events().postSlot(this->index_, p);
 	}
 
@@ -119,8 +117,6 @@ public:
         }
 
         memcpy(mem, &e, sizeof(E));
-
-        this->timestamp = DWT->CYCCNT;
 
         if (!Engine::instance().events().postSlot(this->index_, mem))
         {

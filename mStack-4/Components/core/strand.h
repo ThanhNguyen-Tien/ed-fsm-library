@@ -38,6 +38,7 @@ public:
 		id |= (event->index_ & 0xFFU);
 
 		slot->event_id = id;
+		slot->timestamp = DWT->CYCCNT;
 
 		__DMB();	// ensure payload visible before publish
 		queue_.commit();
@@ -85,6 +86,7 @@ public:
 			memcpy(mem, &e, sizeof(E));
 			slot->payload.p = mem;
 		}
+		slot->timestamp = DWT->CYCCNT;
 
 		__DMB();	// ensure payload visible before publish
 		queue_.commit();
@@ -106,6 +108,7 @@ public:
 
 		slot->event_id = (DELAY << 16U);
 		slot->payload.u = ms;
+		slot->timestamp = DWT->CYCCNT;
 
 		__DMB();	// ensure payload visible before publish
 		queue_.commit();

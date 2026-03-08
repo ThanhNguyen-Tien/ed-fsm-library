@@ -43,7 +43,6 @@ public:
 	{
 		if (++tickCount_ >= nextTick_) {
 			events_.post(index_);
-			this->timestamp = DWT->CYCCNT;
 		}
 	}
 
