@@ -14,7 +14,9 @@ struct EventSlot_t {
 class EventQueue {
 public:
 	virtual ~EventQueue() = default;
-	EventQueue() : evQueue(buffer_, EVENT_QUEUE_SIZE) {}
+	EventQueue() :
+			evQueue(buffer_, EVENT_QUEUE_SIZE) {
+	}
 
 	uint8_t getMaxPeak() const {
 		return this->evQueue.peakUsed();
@@ -28,21 +30,19 @@ public:
 		this->numOfByteHeaps_ += val;
 	}
 
-	void resetEventsMeasurements()
-	{
-		for (size_t i = 0; i < EVENT_POOL_SIZE; i++)
-		{
-		    Event* ev = events_[i];
-		    if (ev == nullptr)
-		        continue;
+	void resetEventsMeasurements() {
+		for (size_t i = 0; i < EVENT_POOL_SIZE; i++) {
+			Event *ev = events_[i];
+			if (ev == nullptr)
+				continue;
 
-		    ev->timeExecution.min_time = UINT32_MAX;
-		    ev->timeExecution.max_time = 0U;
-		    ev->timeExecution.value    = 0U;
+			ev->timeExecution.min_time = UINT32_MAX;
+			ev->timeExecution.max_time = 0U;
+			ev->timeExecution.value = 0U;
 
-		    ev->latency.min_time = UINT32_MAX;
-		    ev->latency.max_time = 0U;
-		    ev->latency.value    = 0U;
+			ev->latency.min_time = UINT32_MAX;
+			ev->latency.max_time = 0U;
+			ev->latency.value = 0U;
 		}
 	}
 
@@ -51,9 +51,10 @@ public:
 			return false;
 		}
 
-		EventSlot_t slot {};
-		if(!evQueue.pop(slot)) {
+		EventSlot_t slot { };
+		if (!evQueue.pop(slot)) {
 			Error_Handler();	// FIXME: Log error instead of halting system
+			return false;
 		}
 
 		if (slot.event_id < poolSize_) {
@@ -64,43 +65,60 @@ public:
 			e->execute(slot.payload);
 			e->timeExecution.value = DWT->CYCCNT - exec_start;
 
-			if (e->latency.value > e->latency.max_time) { e->latency.max_time = e->latency.value; } else {}
-			if (e->latency.value < e->latency.min_time) { e->latency.min_time = e->latency.value; } else {}
+			if (e->latency.value > e->latency.max_time) {
+				e->latency.max_time = e->latency.value;
+			} else {
+			}
+			if (e->latency.value < e->latency.min_time) {
+				e->latency.min_time = e->latency.value;
+			} else {
+			}
 
-			if (e->timeExecution.value > e->timeExecution.max_time) { e->timeExecution.max_time = e->timeExecution.value; } else {}
-			if (e->timeExecution.value < e->timeExecution.min_time) { e->timeExecution.min_time = e->timeExecution.value; } else {}
+			if (e->timeExecution.value > e->timeExecution.max_time) {
+				e->timeExecution.max_time = e->timeExecution.value;
+			} else {
+			}
+			if (e->timeExecution.value < e->timeExecution.min_time) {
+				e->timeExecution.min_time = e->timeExecution.value;
+			} else {
+			}
 		} else {
 			Error_Handler();
+			return false;
 		}
 		return true;
 	}
 
-	__attribute__((always_inline)) inline bool postSlot(uint8_t index, const EventPayload& payload)
-	{
-	    CRITICAL_SECTION_PRIO(1)
+	__attribute__((always_inline)) inline bool postSlot(uint8_t index,
+			const EventPayload &payload) {
+		CRITICAL_SECTION_PRIO(1)
 
-		auto* s = evQueue.reserve();
-		if (!s) {
+		auto *s = evQueue.reserve();
+		if (s == nullptr) {
 			Error_Handler();   // queue full
 			return false;
 		}
 
 		s->event_id = index;
-		s->payload  = payload;
+		s->payload = payload;
 
+		__DMB();	// ensure payload visible before publish
 		evQueue.commit();
 
-	    return true;
+		return true;
 	}
 
 	__attribute__((always_inline)) inline void post(uint8_t index) {
-		EventPayload p; p.u = 0;
+		EventPayload p;
+		p.u = 0;
 		postSlot(index, p);
 	}
 
 private:
 	uint8_t registerEvent_(Event *event) {
-	if (poolSize_ >= EVENT_POOL_SIZE) Error_Handler();
+		if (poolSize_ >= EVENT_POOL_SIZE)
+			Error_Handler();
+
 		events_[poolSize_] = event;
 		return poolSize_++;
 	}

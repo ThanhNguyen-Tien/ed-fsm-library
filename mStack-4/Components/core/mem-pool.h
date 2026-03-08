@@ -19,10 +19,7 @@ template<typename T>
 class MemPool {
 
 private:
-
-    typedef uint8_t Index;
-
-    static const Index INVALID_INDEX = 0xFF;
+    static const uint8_t INVALID_INDEX = 0xFF;
 
     struct alignas(4) Unit
     {
@@ -31,7 +28,6 @@ private:
     };
 
 public:
-
     static constexpr uint32_t REQUIRED_ALIGN =
         (alignof(T) > alignof(Unit)) ? alignof(T) : alignof(Unit);
 
@@ -103,20 +99,17 @@ public:
           used_(0),
           peakUsed_(0)
     {
-        if (pMemBlock_ == nullptr)
-            Error_Handler();
+    	assert(pMemBlock_ != nullptr);
 
-        for (Index i = 0; i < unitNum; ++i)
+        for (uint8_t i = 0; i < unitNum; ++i)
         {
             uint8_t* addr = pMemBlock_ + i * STRIDE;
-
             Unit* unit = static_cast<Unit*>((void*)addr);
 
             unit->index = i;
             unit->next =
                 (i + 1 < unitNum) ? (i + 1) : INVALID_INDEX;
         }
-
         freeHead_ = makeHead(0, 0);
     }
 
@@ -126,13 +119,10 @@ public:
     {
         uint16_t oldHead;
         uint16_t newHead;
-
         Unit* unit;
-
         do
         {
             oldHead = __LDREXH(&freeHead_);
-
             uint8_t index = headIndex(oldHead);
 
             if (index == INVALID_INDEX)
@@ -142,25 +132,18 @@ public:
             }
 
             uint8_t version = headVersion(oldHead);
-
             uint8_t* addr = pMemBlock_ + index * STRIDE;
-
             unit = static_cast<Unit*>((void*)addr);
-
             uint8_t next = unit->next;
-
             newHead = makeHead(next, version + 1);
-
         }
         while (__STREXH(newHead, &freeHead_) != 0);
 
         uint8_t u = atomic_inc_u8(&used_);
-
         if (u > peakUsed_)
         {
             peakUsed_ = u;
         }
-
         uint8_t* payload =
             (uint8_t*)unit + PAYLOAD_OFFSET;
 
@@ -171,30 +154,18 @@ public:
 
     __attribute__((always_inline)) inline void Free(void* p)
     {
-        if (!p)
-        {
-            Error_Handler();
-            return;
-        }
+    	assert(p != nullptr);
 
         uint8_t* payload = static_cast<uint8_t*>(p);
-
         uint8_t* unitAddr = payload - PAYLOAD_OFFSET;
 
-        if (unitAddr < pMemBlock_ ||
-            unitAddr >= pMemBlock_ + capacity_ * STRIDE)
-        {
-            Error_Handler();
-            return;
-        }
+        assert(unitAddr >= pMemBlock_);
+        assert(unitAddr < pMemBlock_ + capacity_ * STRIDE);
 
         Unit* unit = static_cast<Unit*>((void*)unitAddr);
-
-        Index index = unit->index;
-
+        uint8_t index = unit->index;
         uint16_t oldHead;
         uint16_t newHead;
-
         do
         {
             oldHead = __LDREXH(&freeHead_);
@@ -222,7 +193,6 @@ public:
     inline uint8_t peak() const { return peakUsed_; }
 
     inline bool isFull() const { return used_ >= capacity_; }
-
 };
 
 }

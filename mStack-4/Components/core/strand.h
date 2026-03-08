@@ -15,108 +15,103 @@ public:
 			queue_(queue) {
 	}
 
-	void post(EmptyEvent *event, ByteEvent *finished = nullptr)
-	{
-	    EventSlot_t* slot;
+	bool post(EmptyEvent *event, ByteEvent *finished = nullptr) {
+		EventSlot_t *slot;
 
-	    do {
-	        slot = queue_.reserve();
-	        if (slot == nullptr) {
-	            Error_Handler();
-	        }
-	    } while (slot != queue_.reserve());
+		do {
+			slot = queue_.reserve();
+			if (slot == nullptr) {
+				Error_Handler();
+				return false;
+			}
+		} while (slot != queue_.reserve());
 
-	    uint32_t id = 0;
+		uint32_t id = 0;
 
-	    if (finished != nullptr) {
-	        id |= (CALLBACK << 16U);
-	        id |= (static_cast<uint32_t>(finished->index_) << 8U);
-	    } else {
-	        id |= (VOID << 16U);
-	    }
+		if (finished != nullptr) {
+			id |= (CALLBACK << 16U);
+			id |= (static_cast<uint32_t>(finished->index_) << 8U);
+		} else {
+			id |= (VOID << 16U);
+		}
 
-	    id |= (event->index_ & 0xFFU);
+		id |= (event->index_ & 0xFFU);
 
-	    slot->event_id = id;
+		slot->event_id = id;
 
-	    queue_.commit();
+		__DMB();	// ensure payload visible before publish
+		queue_.commit();
 
-	    next_();
+		next_();
+		return true;
 	}
 
 	template<typename E>
-	void post(FixedEvent<E>* event, const E& e, ByteEvent* finished = nullptr)
-	{
-	    EventSlot_t* slot;
+	bool post(FixedEvent<E> *event, const E &e, ByteEvent *finished = nullptr) {
+		EventSlot_t *slot;
 
-	    do {
-	        slot = queue_.reserve();
-	        if (slot == nullptr) {
-	#ifdef RELEASE
-	            return;
-	#else
-	            Error_Handler();
-	#endif
-	        }
-	    } while (slot != queue_.reserve());
+		do {
+			slot = queue_.reserve();
+			if (slot == nullptr) {
+				Error_Handler();
+				return false;
+			}
+		} while (slot != queue_.reserve());
 
-	    uint32_t id = 0;
+		uint32_t id = 0;
 
-	    if (finished != nullptr) {
-	        id |= (CALLBACK << 16U);
-	        id |= (static_cast<uint32_t>(finished->index_) << 8U);
-	    } else {
-	        id |= (VOID << 16U);
-	    }
+		if (finished != nullptr) {
+			id |= (CALLBACK << 16U);
+			id |= (static_cast<uint32_t>(finished->index_) << 8U);
+		} else {
+			id |= (VOID << 16U);
+		}
 
-	    id |= (event->index_ & 0xFFU);
+		id |= (event->index_ & 0xFFU);
 
-	    slot->event_id = id;
+		slot->event_id = id;
 
-	    if (sizeof(E) <= sizeof(uint32_t))
-	    {
-	        slot->payload.u = 0;
-	        memcpy(&slot->payload.u, &e, sizeof(E));
-	    }
-	    else
-	    {
-	        void* mem = event->allocPayload();
+		if (sizeof(E) <= sizeof(uint32_t)) {
+			slot->payload.u = 0;
+			memcpy(&slot->payload.u, &e, sizeof(E));
+		} else {
+			void *mem = event->allocPayload();
 
-	        if (!mem)
-	        {
-	#ifdef RELEASE
-	            return;
-	#else
-	            Error_Handler();
-	#endif
-	        }
+			if (!mem) {
+				Error_Handler();
+				return false;
+			}
 
-	        memcpy(mem, &e, sizeof(E));
-	        slot->payload.p = mem;
-	    }
+			memcpy(mem, &e, sizeof(E));
+			slot->payload.p = mem;
+		}
 
-	    queue_.commit();
+		__DMB();	// ensure payload visible before publish
+		queue_.commit();
 
-	    next_();
+		next_();
+		return true;
 	}
 
-	void delay(uint32_t ms)
-	{
-	    EventSlot_t* slot;
+	bool delay(uint32_t ms) {
+		EventSlot_t *slot;
 
-	    do {
-	        slot = queue_.reserve();
-	        if (slot == nullptr) {
-	            Error_Handler();
-	        }
-	    } while (slot != queue_.reserve());
+		do {
+			slot = queue_.reserve();
+			if (slot == nullptr) {
+				Error_Handler();
+				return false;
+			}
+		} while (slot != queue_.reserve());
 
-	    slot->event_id = (DELAY << 16U);
-	    slot->payload.u = ms;
+		slot->event_id = (DELAY << 16U);
+		slot->payload.u = ms;
 
-	    queue_.commit();
+		__DMB();	// ensure payload visible before publish
+		queue_.commit();
 
-	    next_();
+		next_();
+		return true;
 	}
 
 	void done() {
@@ -148,8 +143,8 @@ private:
 	}
 
 	void execute_() {
-		EventSlot_t slot {};
-		if(!queue_.pop(slot)) {
+		EventSlot_t slot { };
+		if (!queue_.pop(slot)) {
 			Error_Handler();	// FIXME: Log error instead of halting system
 		}
 		uint32_t type = (slot.event_id >> 16U) & 0xFFU;

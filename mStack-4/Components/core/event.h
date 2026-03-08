@@ -113,16 +113,22 @@ public:
         void* mem = allocPayload();
 
         if (!mem)
-            Error_Handler();
+        {
+        	Error_Handler();
+			return false;
+        }
 
         memcpy(mem, &e, sizeof(E));
 
         this->timestamp = DWT->CYCCNT;
 
-        return Engine::instance().events().postSlot(
-            this->index_,
-            mem
-        );
+        if (!Engine::instance().events().postSlot(this->index_, mem))
+        {
+            pool_.Free(mem);
+            return false;
+        }
+
+        return true;
     }
 
 private:
