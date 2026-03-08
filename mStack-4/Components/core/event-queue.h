@@ -46,7 +46,7 @@ public:
 		}
 	}
 
-	inline bool next() {
+	__attribute__((always_inline)) inline bool next() {
 		if (evQueue.empty()) {
 			return false;
 		}
@@ -75,7 +75,7 @@ public:
 		return true;
 	}
 
-	inline bool postSlot(uint8_t index, const EventPayload& payload)
+	__attribute__((always_inline)) inline bool postSlot(uint8_t index, const EventPayload& payload)
 	{
 	    CRITICAL_SECTION_PRIO(1)
 
@@ -93,7 +93,7 @@ public:
 	    return true;
 	}
 
-	inline void post(uint8_t index) {
+	__attribute__((always_inline)) inline void post(uint8_t index) {
 		EventPayload p; p.u = 0;
 		postSlot(index, p);
 	}

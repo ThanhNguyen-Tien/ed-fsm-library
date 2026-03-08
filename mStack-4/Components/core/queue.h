@@ -18,14 +18,7 @@ public:
          assert((size & (size - 1)) == 0); // size must be power of 2
     }
 
-    T* peek() {
-        if (head_ == tail_)
-            return nullptr;
-
-        return &buf_[tail_ & mask_];
-    }
-
-    T* reserve() {
+    __attribute__((always_inline)) inline T* reserve() {
         uint16_t head = head_;
         uint16_t tail = tail_;
 
@@ -36,7 +29,7 @@ public:
         return &buf_[head & mask_];
     }
 
-    void commit() {
+    __attribute__((always_inline)) inline void commit() {
         uint16_t head = head_;
         uint16_t tail = tail_;
 
@@ -47,7 +40,7 @@ public:
             maxUsed_ = used;
     }
 
-    bool push(const T& v) {
+    __attribute__((always_inline)) inline bool push(const T& v) {
         T* s = reserve();
         if (!s)
             return false;
@@ -57,7 +50,7 @@ public:
         return true;
     }
 
-    bool pop(T& out) {
+    __attribute__((always_inline)) inline bool pop(T& out) {
         uint16_t head = head_;
         uint16_t tail = tail_;
 

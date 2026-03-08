@@ -47,41 +47,37 @@ public:
 		}
 		slot.event_id |= (event->index_)&0xFFU;
 
-		if (sizeof(E) <= sizeof(uint32_t))	// SmallFixedEvent
-		{
-			slot.payload.u = 0;
-			memcpy(&slot.payload.u, &e, sizeof(E));
+	    if /*constexpr*/ (sizeof(E) <= sizeof(uint32_t))
+	    {
+	        /* SmallFixedEvent */
+	        slot.payload.u = 0;
+	        memcpy(&slot.payload.u, &e, sizeof(E));
+	    }
+	    else
+	    {
+	        /* BigFixedEvent */
+	        void* mem = event->allocPayload();
 
-			CRITICAL_SECTION_PRIORITY_BEGIN(1)
-			if(!queue_.push(slot)) {
-				Error_Handler();	// FIXME: Log error instead of halting system
-			}
-			CRITICAL_SECTION_PRIORITY_END
-
-		} else	// BigFixedEvent
-		{
-			MemPool<E> *tempPool = static_cast<BigFixedEvent<E>*>(event)->pool_;
-			if (tempPool == nullptr)
-				Error_Handler();
-			void *mem = tempPool->Alloc();
-			if (!mem) {
-#ifdef RELEASE
-					return;
+	        if (!mem)
+	        {
+	#ifdef RELEASE
+	            return;
 	#else
-				Error_Handler();
-#endif
-			}
+	            Error_Handler();
+	#endif
+	        }
 
-			memcpy(mem, &e, sizeof(E));
-			slot.payload.p = mem;
+	        memcpy(mem, &e, sizeof(E));
+	        slot.payload.p = mem;
+	    }
 
-			CRITICAL_SECTION_PRIORITY_BEGIN(1)
-			if(!queue_.push(slot)) {
-				Error_Handler();	// FIXME: Log error instead of halting system
-			}
-			CRITICAL_SECTION_PRIORITY_END
-		}
-		next_();
+        CRITICAL_SECTION_PRIORITY_BEGIN(1)
+        if (!queue_.push(slot)) {
+            Error_Handler();
+        }
+        CRITICAL_SECTION_PRIORITY_END
+
+	    next_();
 	}
 
 	void delay(uint32_t ms) {

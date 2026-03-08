@@ -4,12 +4,12 @@
 
 namespace osc {
 
-static const uint16_t BUFFER_SIZE = 1200;
-static const uint16_t MAX_INDEX_ADDING = BUFFER_SIZE - 1;
-static const uint16_t MAX_INDEX_FLUSH = BUFFER_SIZE - 2;
-static const uint16_t MAX_TOTAL_SAMPLES_PER_BUF = 1000;
-static const uint16_t MAX_COUNT_INDEX_PER_BUF = MAX_TOTAL_SAMPLES_PER_BUF - 1;
-static const uint8_t MAX_NUM_OF_SAMPLES_PER_PACK = 120;
+static constexpr uint16_t BUFFER_SIZE = 1200;
+static constexpr uint16_t MAX_INDEX_ADDING = BUFFER_SIZE - 1;
+static constexpr uint16_t MAX_INDEX_FLUSH = BUFFER_SIZE - 2;
+static constexpr uint16_t MAX_TOTAL_SAMPLES_PER_BUF = 1000;
+static constexpr uint16_t MAX_COUNT_INDEX_PER_BUF = MAX_TOTAL_SAMPLES_PER_BUF - 1;
+static constexpr uint8_t MAX_NUM_OF_SAMPLES_PER_PACK = 120;
 
 struct Data
 {

@@ -31,7 +31,6 @@ private:
 
 	Component *component_ = nullptr;
 	Handler handler_ = nullptr;
-	friend class Strand;
     friend class EmptySignalOne;
     friend class EmptySignalMany;
 };
@@ -44,6 +43,7 @@ public:
 			component_(component), handler_(handler) {
 	}
 
+	virtual void* allocPayload() { return nullptr; }	// Only used for BigFixedEvent, SmallFixedEvent will ignore this and directly copy data into payload.u;
 	virtual bool post(const E &e) = 0;
 
 protected:
@@ -89,7 +89,7 @@ private:
 	}
 };
 
-template<typename E>
+template<typename E, uint8_t N>
 class BigFixedEvent: public FixedEvent<E> {
 	static_assert(sizeof(E) > sizeof(uint32_t), "BigFixedEvent payload must be > 4 bytes");
 	static_assert(alignof(E) >= 4, "Event Data Type must be 4-byte aligned! Use 'alignas(4)' on your data.");
@@ -97,47 +97,46 @@ public:
 	using Base = FixedEvent<E>;
 	using Handler = typename Base::Handler;
 
-	BigFixedEvent(Component *component, Handler handler, uint8_t numOfMem) :
-			Base(component, handler) {
-		if (numOfMem == 0)
-			Error_Handler();
+    static constexpr size_t MEMORY_SIZE =
+        N * MemPool<E>::STRIDE;
 
-		pool_ = new MemPool<E>(numOfMem);
-		if (pool_ == nullptr)
-			Error_Handler();
-	}
+	BigFixedEvent(Component *component, Handler handler) :
+			Base(component, handler), pool_(buffer_, N) {}
 
-	bool post(const E &e) override
-	{
-		if (pool_ == nullptr)
-			Error_Handler();
+    void* allocPayload() override
+    {
+        return pool_.Alloc();
+    }
 
-		void *mem = pool_->Alloc();
-		if (!mem) {
-#ifdef RELEASE
-				return false;
-#else
-			Error_Handler();
-#endif
-		}
+    bool post(const E& e) override
+    {
+        void* mem = allocPayload();
 
-		memcpy(mem, &e, sizeof(E));
-		this->timestamp = DWT->CYCCNT;
-		return Engine::instance().events().postSlot(this->index_, mem);
-	}
+        if (!mem)
+            Error_Handler();
 
-private:
-	void execute(const EventPayload& payload) override
-	{
-	    E* payloadPtr = static_cast<E*>(payload.p);
-	    (this->component_->*this->handler_)(*payloadPtr);
+        memcpy(mem, &e, sizeof(E));
 
-		pool_->Free(payloadPtr);
-	}
+        this->timestamp = DWT->CYCCNT;
+
+        return Engine::instance().events().postSlot(
+            this->index_,
+            mem
+        );
+    }
 
 private:
-	MemPool<E> *pool_;
-	friend class Strand;
+    void execute(const EventPayload& payload) override
+    {
+        E* payloadPtr = static_cast<E*>(payload.p);
+        (this->component_->*this->handler_)(*payloadPtr);
+
+        pool_.Free(payloadPtr);
+    }
+
+private:
+    alignas(MemPool<E>::FINAL_ALIGN) uint8_t buffer_[N * MemPool<E>::STRIDE];
+	MemPool<E> pool_;
 };
 
 typedef SmallFixedEvent<uint8_t> ByteEvent;
@@ -165,8 +164,9 @@ private: \
 // BigFixedEvent
 #define _M_BIG_EVENT(name, type, num) \
 public: \
-    core::BigFixedEvent<type> name##Event = core::BigFixedEvent<type>( \
-        this, (typename core::BigFixedEvent<type>::Handler)&CLASS::name##Handler##_, num ); \
+    core::BigFixedEvent<type, num> name##Event = \
+        core::BigFixedEvent<type, num>( \
+            this, (typename core::BigFixedEvent<type, num>::Handler)&CLASS::name##Handler##_); \
 private: \
     void name##Handler##_(const type& event);
 

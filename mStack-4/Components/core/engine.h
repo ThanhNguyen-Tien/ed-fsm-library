@@ -29,7 +29,7 @@ public:
 	void init() override;
 	void run();
 
-	inline void isrEnter(void)
+	__attribute__((always_inline)) inline void isrEnter(void)
 	{
 	    if (cpu_stats_.in_idle)
 	    {
@@ -39,7 +39,7 @@ public:
 	    }
 	}
 
-	inline void tick()	/* must be called in timer interrupt or SysTick interrupt, usually 1ms */
+	__attribute__((always_inline)) inline void tick()	/* must be called in timer interrupt or SysTick interrupt, usually 1ms */
 	{
 		if (++tickCount_ >= nextTick_) {
 			events_.post(index_);
