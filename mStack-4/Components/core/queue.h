@@ -19,10 +19,10 @@ public:
     }
 
     __attribute__((always_inline)) inline T* reserve() {
-        uint16_t head = head_;
-        uint16_t tail = tail_;
+        uint32_t head = head_;
+        uint32_t tail = tail_;
 
-        uint16_t used = (uint16_t)(head - tail);
+        uint32_t used = head - tail;
         if (used == size_)
             return nullptr; // full
 
@@ -30,12 +30,10 @@ public:
     }
 
     __attribute__((always_inline)) inline void commit() {
-        uint16_t head = head_;
-        uint16_t tail = tail_;
+        uint32_t newHead = head_ + 1;
+        head_ = newHead;
 
-        head_ = head + 1;
-
-        uint16_t used = (uint16_t)(head + 1 - tail);
+        uint32_t used = newHead - tail_;
         if (used > maxUsed_)
             maxUsed_ = used;
     }
@@ -51,8 +49,8 @@ public:
     }
 
     __attribute__((always_inline)) inline bool pop(T& out) {
-        uint16_t head = head_;
-        uint16_t tail = tail_;
+    	uint32_t head = head_;
+    	uint32_t tail = tail_;
 
         if (head == tail)
             return false;   // empty

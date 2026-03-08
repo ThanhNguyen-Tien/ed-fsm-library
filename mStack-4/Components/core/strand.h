@@ -15,47 +15,71 @@ public:
 			queue_(queue) {
 	}
 
-	void post(EmptyEvent *event, ByteEvent *finished = nullptr) {
-		EventSlot_t slot {};
+	void post(EmptyEvent *event, ByteEvent *finished = nullptr)
+	{
+	    EventSlot_t* slot;
 
-		if (finished != nullptr) {
-			slot.event_id |= (CALLBACK) << 16U;
-			slot.event_id |= (static_cast<uint32_t>(finished->index_) << 8U);
-		} else {
-			slot.event_id |= (VOID) << 16U;
-		}
-		slot.event_id |= (event->index_)&0xFFU;
+	    do {
+	        slot = queue_.reserve();
+	        if (slot == nullptr) {
+	            Error_Handler();
+	        }
+	    } while (slot != queue_.reserve());
 
-		CRITICAL_SECTION_PRIORITY_BEGIN(1)
-		if(!queue_.push(slot)) {
-			Error_Handler();	// FIXME: Log error instead of halting system
-		}
-		CRITICAL_SECTION_PRIORITY_END
+	    uint32_t id = 0;
 
-		next_();
+	    if (finished != nullptr) {
+	        id |= (CALLBACK << 16U);
+	        id |= (static_cast<uint32_t>(finished->index_) << 8U);
+	    } else {
+	        id |= (VOID << 16U);
+	    }
+
+	    id |= (event->index_ & 0xFFU);
+
+	    slot->event_id = id;
+
+	    queue_.commit();
+
+	    next_();
 	}
 
 	template<typename E>
-	void post(FixedEvent<E> *event, const E &e, ByteEvent *finished = nullptr) {
-		EventSlot_t slot {};
+	void post(FixedEvent<E>* event, const E& e, ByteEvent* finished = nullptr)
+	{
+	    EventSlot_t* slot;
 
-		if (finished != nullptr) {
-			slot.event_id |= (CALLBACK) << 16U;
-			slot.event_id |= (static_cast<uint32_t>(finished->index_) << 8U);
-		} else {
-			slot.event_id |= (VOID) << 16U;
-		}
-		slot.event_id |= (event->index_)&0xFFU;
+	    do {
+	        slot = queue_.reserve();
+	        if (slot == nullptr) {
+	#ifdef RELEASE
+	            return;
+	#else
+	            Error_Handler();
+	#endif
+	        }
+	    } while (slot != queue_.reserve());
 
-	    if /*constexpr*/ (sizeof(E) <= sizeof(uint32_t))
+	    uint32_t id = 0;
+
+	    if (finished != nullptr) {
+	        id |= (CALLBACK << 16U);
+	        id |= (static_cast<uint32_t>(finished->index_) << 8U);
+	    } else {
+	        id |= (VOID << 16U);
+	    }
+
+	    id |= (event->index_ & 0xFFU);
+
+	    slot->event_id = id;
+
+	    if (sizeof(E) <= sizeof(uint32_t))
 	    {
-	        /* SmallFixedEvent */
-	        slot.payload.u = 0;
-	        memcpy(&slot.payload.u, &e, sizeof(E));
+	        slot->payload.u = 0;
+	        memcpy(&slot->payload.u, &e, sizeof(E));
 	    }
 	    else
 	    {
-	        /* BigFixedEvent */
 	        void* mem = event->allocPayload();
 
 	        if (!mem)
@@ -68,31 +92,31 @@ public:
 	        }
 
 	        memcpy(mem, &e, sizeof(E));
-	        slot.payload.p = mem;
+	        slot->payload.p = mem;
 	    }
 
-        CRITICAL_SECTION_PRIORITY_BEGIN(1)
-        if (!queue_.push(slot)) {
-            Error_Handler();
-        }
-        CRITICAL_SECTION_PRIORITY_END
+	    queue_.commit();
 
 	    next_();
 	}
 
-	void delay(uint32_t ms) {
-		EventSlot_t slot {};
+	void delay(uint32_t ms)
+	{
+	    EventSlot_t* slot;
 
-		slot.event_id |= (DELAY) << 16U;
-		slot.payload.u = ms;
+	    do {
+	        slot = queue_.reserve();
+	        if (slot == nullptr) {
+	            Error_Handler();
+	        }
+	    } while (slot != queue_.reserve());
 
-		CRITICAL_SECTION_PRIORITY_BEGIN(1)
-		if(!queue_.push(slot)) {
-			Error_Handler();	// FIXME: Log error instead of halting system
-		}
-		CRITICAL_SECTION_PRIORITY_END
+	    slot->event_id = (DELAY << 16U);
+	    slot->payload.u = ms;
 
-		next_();
+	    queue_.commit();
+
+	    next_();
 	}
 
 	void done() {
