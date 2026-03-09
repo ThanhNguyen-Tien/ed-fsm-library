@@ -62,17 +62,28 @@ private:
     {
         uint32_t old;
         uint32_t res;
-
         do
         {
             old = __LDREXB(addr);
             res = __STREXB((uint8_t)(old + 1), addr);
         }
         while (res);
-
         __DMB();
-
         return (uint8_t)(old + 1);
+    }
+
+    static inline uint8_t atomic_dec_u8(volatile uint8_t* addr)
+    {
+        uint32_t old;
+        uint32_t res;
+        do
+        {
+            old = __LDREXB(addr);
+            res = __STREXB((uint8_t)(old - 1), addr);
+        }
+        while (res);
+        __DMB();
+        return (uint8_t)(old - 1);
     }
 
     static inline uint8_t headIndex(uint16_t h)
@@ -115,7 +126,7 @@ public:
 
 public:
 
-    __attribute__((always_inline)) inline void* Alloc()
+    inline void* Alloc()
     {
         uint16_t oldHead;
         uint16_t newHead;
@@ -138,6 +149,7 @@ public:
             newHead = makeHead(next, version + 1);
         }
         while (__STREXH(newHead, &freeHead_) != 0);
+        __DMB(); // Ensure that subsequent payload read/write instructions do not jump ahead of STREX.
 
         uint8_t u = atomic_inc_u8(&used_);
         if (u > peakUsed_)
@@ -152,7 +164,7 @@ public:
 
 public:
 
-    __attribute__((always_inline)) inline void Free(void* p)
+    inline void Free(void* p)
     {
     	assert(p != nullptr);
 
@@ -174,12 +186,12 @@ public:
             uint8_t version = headVersion(oldHead);
 
             unit->next = headIdx;
-
+            __DMB(); // Ensure 'next' is successfully changed before Head is changed
             newHead = makeHead(index, version + 1);
         }
         while (__STREXH(newHead, &freeHead_) != 0);
 
-        --used_;
+        static_cast<void>(atomic_dec_u8(&used_));
     }
 
 public:

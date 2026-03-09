@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cassert>
+#include <main.h>
 
 namespace core {
 
@@ -18,71 +19,36 @@ public:
          assert((size & (size - 1)) == 0); // size must be power of 2
     }
 
-    __attribute__((always_inline)) inline T* reserve() {
-        uint32_t head = head_;
-        uint32_t tail = tail_;
+    inline T* reserveAtomic() {
+        uint32_t oldHead, newHead;
+        do {
+            oldHead = __LDREXW(&head_);
+            if ((oldHead - tail_) >= size_) {
+                __CLREX();
+                return nullptr; // Full
+            }
+            newHead = oldHead + 1;
+        } while (__STREXW(newHead, &head_) != 0);
 
-        uint32_t used = head - tail;
-        if (used == size_)
-            return nullptr; // full
-
-        return &buf_[head & mask_];
+        __DMB();
+        return &buf_[oldHead & mask_];
     }
 
-    __attribute__((always_inline)) inline void commit() {
-        uint32_t newHead = head_ + 1;
-        head_ = newHead;
-
-        uint32_t used = newHead - tail_;
-        if (used > maxUsed_)
-            maxUsed_ = used;
+    inline T* peekTail() {
+        if (head_ == tail_) return nullptr;
+        return &buf_[tail_ & mask_];
     }
 
-    __attribute__((always_inline)) inline bool push(const T& v) {
-        T* s = reserve();
-        if (!s)
-            return false;
-
-        *s = v;
-        commit();
-        return true;
-    }
-
-    __attribute__((always_inline)) inline bool pop(T& out) {
-    	uint32_t head = head_;
-    	uint32_t tail = tail_;
-
-        if (head == tail)
-            return false;   // empty
-
-        out = buf_[tail & mask_];
-        tail_ = tail + 1;
-        return true;
-    }
-
-    void pop() {
+    inline void pop() {
+        __DMB();
         tail_ = tail_ + 1;
     }
 
-    inline bool empty() const {
-        return head_ == tail_;
-    }
-
-    inline uint16_t size() const {
-        return size_;
-    }
-
-    inline uint16_t used() const {
-        return (uint16_t)(head_ - tail_);
-    }
-
-    inline uint16_t freeSpace() const {
-        return size_ - used();
-    }
-
-    inline uint16_t peakUsed() const {
-		return maxUsed_;
-	}
+    inline bool empty() const { return head_ == tail_; }
+    inline uint16_t used() const { return (uint16_t)(head_ - tail_); }
+    inline uint32_t getHead() const { return head_; }
+    inline uint32_t getTail() const { return tail_; }
+    inline uint16_t peakUsed() const { return maxUsed_;	}
 
     void reset() {
         head_ = 0;
