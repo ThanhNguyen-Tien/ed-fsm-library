@@ -60,18 +60,18 @@ namespace core
 		inline bool next()
 		{
 			EventSlot_t *slot = evQueue.peekTail();
-			if (slot == nullptr)
+			if (slot == nullptr)	// Queue Empty
 			{
 				return false;
 			}
 
 			uint32_t raw_id = slot->event_id;
-			if (!(raw_id & READY_BIT))
+			if (!(raw_id & READY_BIT))	// Producer hasn't finished writing the event, wait for next turn (Yield)
 			{
-				return false; // Wait for next turn after the Producer finishes writing.
+				return false;
 			}
 
-			uint32_t event_id = raw_id & ~READY_BIT;
+			uint32_t event_id = raw_id & ~READY_BIT;	// Masking to remove Ready Bit (bit 31)
 
 			if (event_id < poolSize_)
 			{

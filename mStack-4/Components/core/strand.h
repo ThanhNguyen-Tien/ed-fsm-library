@@ -9,7 +9,6 @@
 
 namespace core
 {
-
 	class Strand : public Component
 	{
 	public:
@@ -103,18 +102,39 @@ namespace core
 			return true;
 		}
 
+		/**
+		 * @brief Signals that the current event processing is finished.
+		 *
+		 * This must be called by the user (usually at the end of an event handler)
+		 * to allow the Strand to move to the next queued event.
+		 */
 		void done()
 		{
-			busy_ = false;
-			next_();
+		    /*
+		     * ATOMIC STEP: Atomically set 'busy_' to 'false'.
+		     * __ATOMIC_RELEASE acts as a Memory Barrier, ensuring all data processed
+		     * in the current task is globally visible to other cores/DMA before we unlock.
+		     */
+		    __atomic_clear(&busy_, __ATOMIC_RELEASE);
+
+		    /* Trigger the next task if any */
+		    next_();
 		}
 
+		/**
+		 * @brief Signals completion with an error/status byte.
+		 * @param error Status code to be sent back via the 'finished_' event.
+		 */
 		void done(uint8_t error)
 		{
-			busy_ = false;
-			if (finished_ != nullptr)
-				finished_->post(error);
-			next_();
+		    __atomic_clear(&busy_, __ATOMIC_RELEASE);
+
+		    /* Optional: Notify a listener that this Strand sequence has ended/errored */
+		    if (finished_ != nullptr) {
+		        finished_->post(error);
+		    }
+
+		    next_();
 		}
 
 	private:
@@ -125,32 +145,47 @@ namespace core
 			DELAY
 		};
 
+		/**
+		 * @brief Attempts to trigger the next event execution in the Strand.
+		 *
+		 * This function uses a Lock-Free "Test-and-Set" mechanism to ensure that
+		 * ONLY ONE thread/interrupt can trigger the execution process at any given time.
+		 * It prevents race conditions where multiple interrupts might try to post
+		 * the executeEvent_ simultaneously.
+		 */
 		void next_()
 		{
-			// LDREX/STREX (or atomic intrinsic) to protect flag busy_
-			// Only threads that successfully change busy_ from false to true are allowed to post executeEvent_
-			if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
-			{
-				return; // Currently processing or already in a queue.
-			}
+		    /*
+		     * ATOMIC STEP: Read 'busy_' and set it to 'true' in a single, indivisible hardware operation.
+		     * __atomic_test_and_set returns the PREVIOUS value of 'busy_'.
+		     * - If it returns 'true': Someone else is already processing. We skip (Abort).
+		     * - If it returns 'false': We successfully "locked" the Strand. We proceed.
+		     * __ATOMIC_ACQUIRE ensures subsequent memory reads don't happen before this lock.
+		     */
+		    if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
+		    {
+		        return; // Strand is currently busy or an execution is already scheduled.
+		    }
 
-			// If queue empty then return busy_ = false
-			if (queue_.empty())
-			{
-				busy_ = false;
-				return;
-			}
+		    /*
+		     * If the queue is empty, we must release the 'busy' lock so future 'post'
+		     * calls can trigger the Strand again.
+		     */
+		    if (queue_.empty())
+		    {
+		        __atomic_clear(&busy_, __ATOMIC_RELEASE);
+		        return;
+		    }
 
-			if (!executeEvent_.post())
-			{
-				busy_ = false;
-			}
-		}
-
-		void timeout_()
-		{
-			busy_ = false;
-			next_();
+		    /*
+		     * Try to post the execution trigger to the System Engine.
+		     * If the system queue is full (post fails), we must release the 'busy' lock
+		     * so the next call to next_() has a chance to retry.
+		     */
+		    if (!executeEvent_.post())
+		    {
+		        __atomic_clear(&busy_, __ATOMIC_RELEASE);
+		    }
 		}
 
 		void execute_()
@@ -158,7 +193,7 @@ namespace core
 			EventSlot_t *slot = queue_.peekTail();
 			if (slot == nullptr)
 			{
-				busy_ = false;
+				__atomic_clear(&busy_, __ATOMIC_RELEASE);
 				return;
 			}
 
@@ -208,7 +243,7 @@ namespace core
 		EmptyEvent executeEvent_ = EmptyEvent(this,
 											  static_cast<EmptyEvent::Handler>(&Strand::execute_));
 		EventQueue &events_ = Engine::instance().events();
-		Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::timeout_));
+		Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::done));
 		Queue<EventSlot_t> &queue_;
 		volatile bool busy_ = false;
 	};
