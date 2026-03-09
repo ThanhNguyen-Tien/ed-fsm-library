@@ -110,15 +110,15 @@ namespace core
 		 */
 		void done()
 		{
-		    /*
-		     * ATOMIC STEP: Atomically set 'busy_' to 'false'.
-		     * __ATOMIC_RELEASE acts as a Memory Barrier, ensuring all data processed
-		     * in the current task is globally visible to other cores/DMA before we unlock.
-		     */
-		    __atomic_clear(&busy_, __ATOMIC_RELEASE);
+			/*
+			 * ATOMIC STEP: Atomically set 'busy_' to 'false'.
+			 * __ATOMIC_RELEASE acts as a Memory Barrier, ensuring all data processed
+			 * in the current task is globally visible to other cores/DMA before we unlock.
+			 */
+			__atomic_clear(&busy_, __ATOMIC_RELEASE);
 
-		    /* Trigger the next task if any */
-		    next_();
+			/* Trigger the next task if any */
+			next_();
 		}
 
 		/**
@@ -127,14 +127,15 @@ namespace core
 		 */
 		void done(uint8_t error)
 		{
-		    __atomic_clear(&busy_, __ATOMIC_RELEASE);
+			__atomic_clear(&busy_, __ATOMIC_RELEASE);
 
-		    /* Optional: Notify a listener that this Strand sequence has ended/errored */
-		    if (finished_ != nullptr) {
-		        finished_->post(error);
-		    }
+			/* Optional: Notify a listener that this Strand sequence has ended/errored */
+			if (finished_ != nullptr)
+			{
+				finished_->post(error);
+			}
 
-		    next_();
+			next_();
 		}
 
 	private:
@@ -155,37 +156,37 @@ namespace core
 		 */
 		void next_()
 		{
-		    /*
-		     * ATOMIC STEP: Read 'busy_' and set it to 'true' in a single, indivisible hardware operation.
-		     * __atomic_test_and_set returns the PREVIOUS value of 'busy_'.
-		     * - If it returns 'true': Someone else is already processing. We skip (Abort).
-		     * - If it returns 'false': We successfully "locked" the Strand. We proceed.
-		     * __ATOMIC_ACQUIRE ensures subsequent memory reads don't happen before this lock.
-		     */
-		    if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
-		    {
-		        return; // Strand is currently busy or an execution is already scheduled.
-		    }
+			/*
+			 * ATOMIC STEP: Read 'busy_' and set it to 'true' in a single, indivisible hardware operation.
+			 * __atomic_test_and_set returns the PREVIOUS value of 'busy_'.
+			 * - If it returns 'true': Someone else is already processing. We skip (Abort).
+			 * - If it returns 'false': We successfully "locked" the Strand. We proceed.
+			 * __ATOMIC_ACQUIRE ensures subsequent memory reads don't happen before this lock.
+			 */
+			if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
+			{
+				return; // Strand is currently busy or an execution is already scheduled.
+			}
 
-		    /*
-		     * If the queue is empty, we must release the 'busy' lock so future 'post'
-		     * calls can trigger the Strand again.
-		     */
-		    if (queue_.empty())
-		    {
-		        __atomic_clear(&busy_, __ATOMIC_RELEASE);
-		        return;
-		    }
+			/*
+			 * If the queue is empty, we must release the 'busy' lock so future 'post'
+			 * calls can trigger the Strand again.
+			 */
+			if (queue_.empty())
+			{
+				__atomic_clear(&busy_, __ATOMIC_RELEASE);
+				return;
+			}
 
-		    /*
-		     * Try to post the execution trigger to the System Engine.
-		     * If the system queue is full (post fails), we must release the 'busy' lock
-		     * so the next call to next_() has a chance to retry.
-		     */
-		    if (!executeEvent_.post())
-		    {
-		        __atomic_clear(&busy_, __ATOMIC_RELEASE);
-		    }
+			/*
+			 * Try to post the execution trigger to the System Engine.
+			 * If the system queue is full (post fails), we must release the 'busy' lock
+			 * so the next call to next_() has a chance to retry.
+			 */
+			if (!executeEvent_.post())
+			{
+				__atomic_clear(&busy_, __ATOMIC_RELEASE);
+			}
 		}
 
 		void execute_()

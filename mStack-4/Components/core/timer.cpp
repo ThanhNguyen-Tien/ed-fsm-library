@@ -4,40 +4,49 @@
 
 using namespace core;
 
-Timer::Timer(Component *component, Handler handler) :
-		component_(component), handler_(handler) {
+Timer::Timer(Component *component, Handler handler) : component_(component), handler_(handler)
+{
 	Engine::instance().registerTimer_(this);
 }
 
-void Timer::start(uint32_t interval, int32_t loop) {
+void Timer::start(uint32_t interval, int32_t loop)
+{
 	static Engine &engine = Engine::instance();
 	this->interval_ = interval;
 	this->nextTick_ = engine.tickCount() + interval;
-	if (!isRunning()) {
+	if (!isRunning())
+	{
 		this->loop_ = loop;
 		engine.pStartTimerEvent_->post(this);
-	} else {
+	}
+	else
+	{
 		this->loop_ = loop;
 	}
 }
 
-void Timer::stop() {
+void Timer::stop()
+{
 	loop_ = 0;
 	Engine::instance().pStopTimerEvent_->post(this);
 	this->nextTick_ = LAST_TICK - 1;
 }
 
-void Timer::run_() {
-	if (--loop_ == 0) {
+void Timer::run_()
+{
+	if (--loop_ == 0)
+	{
 		Engine::instance().stopTimer_(this);
 		this->nextTick_ = LAST_TICK - 1;
-	} else {
+	}
+	else
+	{
 		nextTick_ += interval_;
-		if (loop_ < 0) {
+		if (loop_ < 0)
+		{
 			loop_ = -1;
 		}
 	}
 
 	(component_->*handler_)();
 }
-
