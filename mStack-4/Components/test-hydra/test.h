@@ -9,7 +9,6 @@
 #include <core/strand.h>
 #include <hydra/controller.h>
 #include <oscilloscope/quad.h>
-#include <oscilloscope/single.h>
 
 #define N_SAMPLES 400
 #define AMP       512.0f
@@ -24,17 +23,22 @@ typedef struct Fake
 	uint8_t f4;
 }fake_t;
 
-COMPONENT(ex, Test)
+typedef struct StressData {
+    uint32_t seq;
+    uint32_t producer_id;
+    uint32_t checksum;
+} stress_data_t;
 
+SIMPLE_MACHINE(ex, Test)
 	M_TIMER(testLog)
 	M_TIMER(plot)
 	M_TIMER(oscilloscope)
 	M_EVENT(empty)
 	M_EVENT(fixedMany, fake_t, 3)
 	M_EVENT(fixedMany_1, fake_t, 3)
+	M_EVENT(stress, stress_data_t, 8)
 
 	O_QUAD(quad, 0,1,2,3)
-	O_SINGLE(single, 6)
 
 	M_SIGNAL(empty)
 	M_SIGNAL(fixed, uint16_t)
@@ -55,9 +59,20 @@ COMPONENT(ex, Test)
 	M_EVENT(strandEmpty)
 	M_EVENT(strandFixed, fake_t, 5)
 	M_STRAND(command, 8)
+	M_STRAND(stress, 32)
 
 public:
 	void init();
+
+private:
+	STATE_DEF(Idle)
+	STATE_DEF(Running)
+
+	enum class Event : uint8_t
+	{
+		START,
+		STOP
+	};
 
 private:
 	fake_t fake_ = {.f0 = 100.123f,

@@ -118,9 +118,10 @@ namespace core
 		{
 			void *mem = allocPayload();
 
-			if (!mem)
+			if (mem == nullptr)
 			{
-				Error_Handler();
+//				Error_Handler();
+				Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, this->index_);
 				return false;
 			}
 

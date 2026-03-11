@@ -122,67 +122,70 @@ namespace core
         }
 
     public:
-        inline void *Alloc()
-        {
-            uint16_t oldHead;
-            uint16_t newHead;
-            Unit *unit;
-            do
-            {
+        inline void* Alloc() {
+            uint16_t oldHead, newHead;
+            Unit* unit;
+            uint32_t retry_count = 0;
+
+            for (;;) {
                 oldHead = __LDREXH(&freeHead_);
                 uint8_t index = headIndex(oldHead);
 
-                if (index == INVALID_INDEX)
-                {
+                if (index == INVALID_INDEX) {
                     __CLREX();
                     return nullptr;
                 }
 
                 uint8_t version = headVersion(oldHead);
-                uint8_t *addr = pMemBlock_ + index * STRIDE;
-                unit = static_cast<Unit *>((void *)addr);
-                uint8_t next = unit->next;
-                newHead = makeHead(next, version + 1);
-            } while (__STREXH(newHead, &freeHead_) != 0);
-            __DMB(); // Ensure that subsequent payload read/write instructions do not jump ahead of STREX.
+                uint8_t* addr = pMemBlock_ + index * STRIDE;
+                unit = static_cast<Unit*>((void*)addr);
+
+                newHead = makeHead(unit->next, version + 1);
+
+                if (__STREXH(newHead, &freeHead_) == 0) {
+                    break; // Success
+                }
+                retry_count++;
+            }
+            __DMB();
+
+            if (retry_count > 0) {
+                Telemetry::log(TelemetryType::MEMPOOL_ALLOC_CONTENTION, (uint16_t)retry_count);
+            }
 
             uint8_t u = atomic_inc_u8(&used_);
-            if (u > peakUsed_)
-            {
-                peakUsed_ = u;
-            }
-            uint8_t *payload =
-                (uint8_t *)unit + PAYLOAD_OFFSET;
+            if (u > peakUsed_) peakUsed_ = u;
 
-            return payload;
+            return (uint8_t*)unit + PAYLOAD_OFFSET;
         }
 
-    public:
-        inline void Free(void *p)
-        {
-            assert(p != nullptr);
-
-            uint8_t *payload = static_cast<uint8_t *>(p);
-            uint8_t *unitAddr = payload - PAYLOAD_OFFSET;
-
-            assert(unitAddr >= pMemBlock_);
-            assert(unitAddr < pMemBlock_ + capacity_ * STRIDE);
-
-            Unit *unit = static_cast<Unit *>((void *)unitAddr);
+        inline void Free(void* p) {
+            uint8_t* unitAddr = (uint8_t*)p - PAYLOAD_OFFSET;
+            Unit* unit = static_cast<Unit*>((void*)unitAddr);
             uint8_t index = unit->index;
-            uint16_t oldHead;
-            uint16_t newHead;
-            do
-            {
-                oldHead = __LDREXH(&freeHead_);
 
+            uint16_t oldHead, newHead;
+            uint32_t retry_count = 0;
+
+            for (;;) {
+                oldHead = __LDREXH(&freeHead_);
                 uint8_t headIdx = headIndex(oldHead);
                 uint8_t version = headVersion(oldHead);
 
                 unit->next = headIdx;
-                __DMB(); // Ensure 'next' is successfully changed before Head is changed
+                __DMB(); // Ensure 'next' is set before updating head
+
                 newHead = makeHead(index, version + 1);
-            } while (__STREXH(newHead, &freeHead_) != 0);
+
+                if (__STREXH(newHead, &freeHead_) == 0) {
+                    break; // Success
+                }
+                retry_count++;
+            }
+
+            if (retry_count > 0) {
+                Telemetry::log(TelemetryType::MEMPOOL_FREE_CONTENTION, (uint16_t)retry_count);
+            }
 
             static_cast<void>(atomic_dec_u8(&used_));
         }

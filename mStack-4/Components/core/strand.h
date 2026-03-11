@@ -6,6 +6,7 @@
 #include <core/event-queue.h>
 #include <core/engine.h>
 #include <core/timer.h>
+#include <telematry/telemetry.h>
 
 namespace core
 {
@@ -21,7 +22,8 @@ namespace core
 			EventSlot_t *slot = queue_.reserveAtomic();
 			if (slot == nullptr)
 			{
-				Error_Handler();
+//				Error_Handler();
+				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
 				return false;
 			}
 
@@ -42,7 +44,8 @@ namespace core
 			EventSlot_t *slot = queue_.reserveAtomic();
 			if (slot == nullptr)
 			{
-				Error_Handler();
+//				Error_Handler();
+				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
 				return false;
 			}
 
@@ -68,7 +71,8 @@ namespace core
 				void *mem = event->allocPayload();
 				if (!mem)
 				{
-					Error_Handler();
+//					Error_Handler();
+					Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
 					return false;
 				}
 				memcpy(mem, &e, sizeof(E));
@@ -89,7 +93,8 @@ namespace core
 			EventSlot_t *slot = queue_.reserveAtomic();
 			if (slot == nullptr)
 			{
-				Error_Handler();
+//				Error_Handler();
+				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, DELAY);
 				return false;
 			}
 
@@ -203,7 +208,8 @@ namespace core
 			if (!(raw_id & READY_BIT))
 			{
 				// Repost itself to the EventQueue to wait for the next turn (Yield)
-				executeEvent_.post();
+				Telemetry::log(TelemetryType::LOCK_FREE_YIELD);
+//				executeEvent_.post();
 				return;
 			}
 

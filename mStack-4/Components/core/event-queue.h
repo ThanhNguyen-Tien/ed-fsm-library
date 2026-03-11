@@ -4,6 +4,7 @@
 #include <core/base.h>
 #include <core/system.h>
 #include <core/queue.h>
+#include <telematry/telemetry.h>
 
 namespace core
 {
@@ -68,6 +69,7 @@ namespace core
 			uint32_t raw_id = slot->event_id;
 			if (!(raw_id & READY_BIT)) // Producer hasn't finished writing the event, wait for next turn (Yield)
 			{
+				Telemetry::log(TelemetryType::LOCK_FREE_YIELD);
 				return false;
 			}
 
@@ -128,7 +130,8 @@ namespace core
 			auto *s = evQueue.reserveAtomic(); // Protect by LDREX/STREX
 			if (s == nullptr)
 			{
-				Error_Handler();
+//				Error_Handler();
+				Telemetry::log(TelemetryType::EV_QUEUE_FULL, index);
 				return false;
 			}
 

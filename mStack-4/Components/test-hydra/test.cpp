@@ -1,7 +1,10 @@
 #include "test.h"
 #include "math.h"
 #include "hydra/log.h"
+#include "tim.h"
+#include <telematry/telemetry.h>
 using namespace ex;
+using namespace core;
 
 void Test::init()
 {
@@ -69,8 +72,14 @@ void Test::init()
 	    chirp_[i] = (int16_t)(sinf(phase) * AMP) + OFFSET;
 	}
 
+	MX_TIM3_Init();
+	MX_TIM4_Init();
+
+	LL_TIM_EnableIT_UPDATE(TIM3);
+	LL_TIM_EnableIT_UPDATE(TIM4);
+
     plotTimer_.start(5); //100Hz
-    oscilloscopeTimer_.start(1);
+    oscilloscopeTimer_.start(2);
     testLogTimer_.start(1000);
 
     emptySignal.connect(&emptySignalReceivedEvent);
@@ -79,20 +88,18 @@ void Test::init()
 //    fixedManySignal.connect(&fixedManyEvent);
 //    fixedManySignal.connect(&fixedMany_1Event);
 //
-//    SM_START(StartUp);
+    SM_START(Idle);
     LOG_DEBUG_PRINT("Hello Thanh Neymar");
 }
 
 M_EVENT_HANDLER(Test, strandEmpty)
 {
-	LOG_CRITICAL_PRINT("STRAND Empty");
+//	LOG_CRITICAL_PRINT("STRAND Empty");
 	commandStrand.done();
 }
 
 M_EVENT_HANDLER(::Test, strandFixed, fake_t)
 {
-//	LOG_PRINTF("STRAND Fixed: %d", event);
-	LOG_CRITICAL_PRINTF("STRAND Big Fixed %u %u %u", event.f2, event.f3, event.f4);
 	commandStrand.done();
 }
 
@@ -106,10 +113,7 @@ M_TIMER_HANDLER(Test, testLog)
 	fake_.f3 += 10;
 	fake_.f4 += 10;
 	commandStrand.post(&strandEmptyEvent);
-//	commandStrand.post(&strandEmptyEvent);
 	commandStrand.delay(500);
-	commandStrand.post<fake_t>(&strandFixedEvent, fake_);
-	commandStrand.post<fake_t>(&strandFixedEvent, fake_);
 	commandStrand.post<fake_t>(&strandFixedEvent, fake_);
 	commandStrand.delay(200);
 	commandStrand.delay(100);
@@ -140,10 +144,10 @@ M_TIMER_HANDLER(Test, oscilloscope)
 
 M_EVENT_HANDLER(Test, empty)
 {
-	LOG_INFO_PRINT("INFO");
-	LOG_WARNING_PRINT("WARNING");
-	LOG_ERROR_PRINT("ERROR");
-	LOG_CRITICAL_PRINT("CRITICAL");
+//	LOG_INFO_PRINT("INFO");
+//	LOG_WARNING_PRINT("WARNING");
+//	LOG_ERROR_PRINT("ERROR");
+//	LOG_CRITICAL_PRINT("CRITICAL");
 }
 
 M_EVENT_HANDLER(Test, fixedMany, struct Fake)
@@ -169,13 +173,13 @@ M_EVENT_HANDLER(Test, fixedSignalReceived, uint16_t)
 U_ACTION_HANDLER(Test, start)
 {
 	LOG_DEBUG_PRINT("START");
-	LL_GPIO_TogglePin(GPIOA, LL_GPIO_PIN_5);
+	SM_POST(Event::START);
 }
 
 U_ACTION_HANDLER(Test, stop)
 {
 	LOG_INFO_PRINT("STOP");
-	core::Engine::instance().events().resetEventsMeasurements();
+	SM_POST(Event::STOP);
 }
 
 U_ACTION_HANDLER(Test, left)
@@ -202,4 +206,69 @@ U_TEXT_HANDLER(Test, name)
 	}
 	name_[i] = 0;
 	LOG_INFO_PRINTF("%s", name_);
+}
+
+M_EVENT_HANDLER(Test, stress, stress_data_t)
+{
+    // 1. Kiểm tra MemPool: Dữ liệu có bị ghi đè chéo không?
+    if (event.checksum != (event.seq ^ event.producer_id)) {
+        // LỖI: LDREX/STREX trong MemPool không bảo vệ được vùng nhớ
+        Telemetry::log(TelemetryType::CHECKSUM_ERR, (uint16_t)event.producer_id);
+    }
+
+    // 2. Kiểm tra Strand: Có đảm bảo Sequential (tuần tự) không?
+    static volatile uint32_t concurrency_guard = 0;
+    if (__atomic_fetch_add(&concurrency_guard, 1, __ATOMIC_ACQUIRE) > 0) {
+        // LỖI: busy_ flag thất bại, 2 task đang chạy song song trong 1 strand
+        Telemetry::log(TelemetryType::STRAND_CONCURRENCY_ERR, 1);
+    }
+
+    // Giả lập làm việc nặng để tạo hàng đợi (Queue Saturation)
+    for(volatile int i=0; i<1000; i++);
+
+    __atomic_fetch_sub(&concurrency_guard, 1, __ATOMIC_RELEASE);
+
+    // 3. Giải phóng Strand để chạy event tiếp theo
+    stressStrand.done();
+}
+
+extern "C" void TIM3_IRQHandler(void)
+{
+	core::Engine::instance().isrEnter();
+	if(LL_TIM_IsActiveFlag_UPDATE(TIM3))
+	{
+		LL_TIM_ClearFlag_UPDATE(TIM3);
+	    static uint32_t seqA = 0;
+	    stress_data_t d = { seqA, 0xAABB, seqA ^ 0xAABB };
+
+	    // Test Strand & EventQueue:
+	    // Nếu reserveAtomic hoặc postSlot lỗi, log lại ngay
+	    if (!Test::instance().stressStrand.post<stress_data_t>(&Test::instance().stressEvent, d)) {
+	    	LOG_ERROR_PRINT("TIM3 - Failed to post stress event to strand");
+	    }
+
+	    if (!Test::instance().stressEvent.post(d)) {
+	    	LOG_ERROR_PRINT("TIM3 - Failed to post stress event to event queue");
+	    }
+	    seqA++;
+	}
+}
+
+extern "C" void TIM4_IRQHandler(void)
+{
+	core::Engine::instance().isrEnter();
+	if(LL_TIM_IsActiveFlag_UPDATE(TIM4))
+	{
+		LL_TIM_ClearFlag_UPDATE(TIM4);
+	    static uint32_t seqB = 0;
+	    stress_data_t d = { seqB, 0xCCDD, seqB ^ 0xCCDD };
+
+	    if (!Test::instance().stressStrand.post<stress_data_t>(&Test::instance().stressEvent, d)) {
+	    	LOG_ERROR_PRINT("TIM4 - Failed to post stress event to strand");
+	    }
+	    if (!Test::instance().stressEvent.post(d)) {
+	    	LOG_ERROR_PRINT("TIM4 - Failed to post stress event to event queue");
+	    }
+	    seqB++;
+	}
 }
