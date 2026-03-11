@@ -15,10 +15,9 @@ namespace core {
     enum class TelemetryType : uint16_t {
     	NONE = 0,
         EV_QUEUE_FULL,
-		STRAND_QUEUE_FULL, // Bắt được tranh chấp tại Strand Queue
+		STRAND_QUEUE_FULL,
         QUEUE_CONTENTION,
-        STRAND_CONCURRENCY_ERR, // Phát hiện 2 task chạy cùng lúc
-        LOCK_FREE_YIELD,        // Bắt được khoảnh khắc Ready Bit chưa bật
+        LOCK_FREE_YIELD,
         MEMPOOL_ALLOC_FAIL,
 		MEMPOOL_ALLOC_CONTENTION,
 		MEMPOOL_FREE_CONTENTION,
@@ -35,8 +34,6 @@ namespace core {
     public:
         static void log(TelemetryType type, uint16_t data = 0) {
             uint32_t rawIdx = __atomic_fetch_add(&writeIdx_, 1, __ATOMIC_SEQ_CST);
-
-            // 2. Chặn index trong phạm vi mảng bằng bitmask (vì LOG_SIZE = 128 là lũy thừa của 2)
             uint32_t idx = rawIdx & (LOG_SIZE - 1);
 
             logs_[idx] = { DWT->CYCCNT, type, data };

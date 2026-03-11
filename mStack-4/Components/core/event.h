@@ -28,15 +28,8 @@ namespace core
 			(component_->*handler_)();
 		}
 
-		inline void execute_()
-		{
-			(component_->*handler_)();
-		}
-
 		Component *component_ = nullptr;
 		Handler handler_ = nullptr;
-		friend class EmptySignalOne;
-		friend class EmptySignalMany;
 	};
 
 	template <typename E>
@@ -54,17 +47,8 @@ namespace core
 	protected:
 		virtual void execute(const EventPayload &payload) = 0;
 
-		inline void execute_(const E &e)
-		{
-			(this->component_->*this->handler_)(e);
-		}
-
 		Component *component_ = nullptr;
 		Handler handler_ = nullptr;
-		template <typename EV, typename EventE>
-		friend class SignalOne;
-		template <typename EV, typename EventE>
-		friend class SignalMany;
 	};
 
 	template <typename E>
@@ -120,7 +104,7 @@ namespace core
 
 			if (mem == nullptr)
 			{
-//				Error_Handler();
+				//				Error_Handler();
 				Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, this->index_);
 				return false;
 			}

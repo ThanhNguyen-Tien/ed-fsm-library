@@ -25,7 +25,7 @@ STATE_BODY(Test::Running)
 		LOG_INFO_PRINTF("RUNNING - %s", __func__);
 		LL_TIM_EnableCounter(TIM3);
 		LL_TIM_EnableCounter(TIM4);
-		timer_.start(100);
+		timer_.start(5);
 	}
 	TRANSITION_(Event::STOP, Idle) {}
 	TIMEOUT_()

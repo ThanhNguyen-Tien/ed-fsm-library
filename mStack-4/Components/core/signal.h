@@ -2,185 +2,129 @@
 #define CORE_SIGNAL_H
 #include <core/event.h>
 #include <core/base.h>
+#include <core/mem-pool.h>
 
 namespace core
 {
-	class EmptySignalOne
-	{
-	public:
-		void connect(EmptyEvent *event)
-		{
-			this->event_ = event;
-		}
-		void disconnect()
-		{
-			event_ = nullptr;
-		}
-		inline void emit(bool immediately = false)
-		{
-			if (event_ != nullptr)
-			{
-				if (!immediately)
-					event_->post();
-				else
-					event_->execute_();
-			}
-		}
-
-	private:
-		EmptyEvent *event_ = nullptr;
+	struct SignalConnection {
+		void* event;
+		SignalConnection* next;
 	};
+	extern MemPool<SignalConnection> defaultSignalPool;
 
-	template <typename EV, typename E>
-	class SignalOne
-	{
-	public:
-		void connect(EV *event)
-		{
-			this->event_ = event;
-		}
-		void disconnect()
-		{
-			event_ = nullptr;
-		}
-		inline void emit(E e, bool immediately = false)
-		{
-			if (event_ != nullptr)
-			{
-				if (!immediately)
-					event_->post(e);
-				else
-					event_->execute_(e);
-			}
-			else
-			{
-			}
-		}
+    class EmptySignalOne {
+    public:
+        void connect(EmptyEvent *event) { this->event_ = event; }
+        void disconnect() { event_ = nullptr; }
+        inline void emit() { if (event_) event_->post(); }
+    private:
+        EmptyEvent *event_ = nullptr;
+    };
 
-	private:
-		EV *event_ = nullptr;
-	};
+    template <typename EV, typename E>
+    class SignalOne {
+    public:
+        void connect(EV *event) { this->event_ = event; }
+        void disconnect() { event_ = nullptr; }
+        inline void emit(E e) { if (event_) event_->post(e); }
+    private:
+        EV *event_ = nullptr;
+    };
 
-	template <class E>
-	class BaseSignalMany
-	{
-	public:
-		void connect(E *event)
-		{
-			for (Connection *it = connections_; it != nullptr; it = it->next)
-			{
-				if (it->event == event)
-				{
-					return;
-				}
-				else
-				{
-				}
-			}
+    template <class E>
+    class BaseSignalMany {
+    protected:
+        struct Connection {
+            E *event;
+            Connection *next;
+        };
 
-			Connection *con = new Connection;
-			con->event = event;
-			con->next = connections_;
-			connections_ = con;
-		}
+    public:
+        BaseSignalMany(MemPool<SignalConnection>& pool = defaultSignalPool)
+            : pool_(pool) {}
 
-		void disconnect(E *event)
-		{
-			Connection *pre = nullptr;
-			for (Connection *it = connections_; it != nullptr; it = it->next)
-			{
-				if (it->event == event)
-				{
-					if (pre == nullptr)
-					{
-						connections_ = it->next;
-					}
-					else
-					{
-						pre->next = it->next;
-					}
-					delete it;
-					return;
-				}
-				else
-				{
-				}
-				pre = it;
-			}
-		}
+        void connect(E *event) {
+            // SPSC: Only call from Main loop, check duplicate
+            for (Connection *it = (Connection*)connections_; it != nullptr; it = it->next) {
+                if (it->event == event) return;
+            }
 
-	protected:
-		struct Connection
-		{
-			E *event;
-			Connection *next;
-		};
-		Connection *connections_ = nullptr;
-	};
+            void* mem = pool_.Alloc(); // Dùng pool được chỉ định
+            if (!mem) return;
 
-	class EmptySignalMany : public BaseSignalMany<EmptyEvent>
-	{
-	public:
-		inline void emit(bool immediately = false)
-		{
-			for (Connection *it = connections_; it != nullptr; it = it->next)
-			{
-				if (it->event != nullptr)
-				{
-					if (!immediately)
-						it->event->post();
-					else
-						it->event->execute_();
-				}
-				else
-				{
-				}
-			}
-		}
-	};
+            Connection *con = static_cast<Connection*>(mem);
+            con->event = event;
+            con->next = (Connection*)connections_;
+            // Release để ISR (emit) thấy node mới hoàn chỉnh
+            __atomic_store_n(&connections_, con, __ATOMIC_RELEASE);
+        }
 
-	template <typename EV, typename E>
-	class SignalMany : public BaseSignalMany<EV>
-	{
-		static_assert(alignof(E) >= 4, "Event Data Type must be 4-byte aligned! Use 'alignas(4)' on your data.");
+        void disconnect(E *event) {
+            Connection *pre = nullptr;
+            for (Connection *it = (Connection*)connections_; it != nullptr; it = it->next) {
+                if (it->event == event) {
+                    if (pre == nullptr)
+                        __atomic_store_n(&connections_, it->next, __ATOMIC_RELEASE);
+                    else
+                        pre->next = it->next;
 
-	public:
-		inline void emit(E e, bool immediately = false)
-		{
-			for (auto it = this->connections_; it != nullptr; it = it->next)
-			{
-				if (it->event != nullptr)
-				{
-					if (!immediately)
-						it->event->post(e);
-					else
-						it->event->execute_(e);
-				}
-				else
-				{
-				}
-			}
-		}
-	};
+                    pool_.Free(it);
+                    return;
+                }
+                pre = it;
+            }
+        }
+
+    protected:
+        MemPool<SignalConnection>& pool_;
+        volatile Connection *connections_ = nullptr;
+    };
+
+    class EmptySignalMany : public BaseSignalMany<EmptyEvent> {
+    public:
+        using BaseSignalMany<EmptyEvent>::BaseSignalMany;
+        inline void emit() {
+            Connection *it = (Connection*)__atomic_load_n(&connections_, __ATOMIC_ACQUIRE);
+            for (; it != nullptr; it = it->next) {
+                if (it->event) it->event->post();
+            }
+        }
+    };
+
+    template <typename EV, typename E>
+    class SignalMany : public BaseSignalMany<EV> {
+    public:
+        using BaseSignalMany<EV>::BaseSignalMany;
+        inline void emit(E e) {
+            auto it = (typename BaseSignalMany<EV>::Connection*)__atomic_load_n(&this->connections_, __ATOMIC_ACQUIRE);
+            for (; it != nullptr; it = it->next) {
+                if (it->event) it->event->post(e);
+            }
+        }
+    };
 }
 
+// --- MACRO FUNCTIONS --
 #define M_SIGNAL(...) _M_MACRO_2(__VA_ARGS__, _M_FIXED_SIGNAL_ONE, _M_SIGNAL_ONE)(__VA_ARGS__)
-#define M_SIGNAL_MANY(...) _M_MACRO_2(__VA_ARGS__, _M_FIXED_SIGNAL_MANY, _M_SIGNAL_MANY)(__VA_ARGS__)
+#define M_SIGNAL_MANY(...) _M_MACRO_3(__VA_ARGS__, _M_MANY_3, _M_MANY_2, _M_MANY_1)(__VA_ARGS__)
 
 #define _M_SIGNAL_ONE(name) \
-public:                     \
-	core::EmptySignalOne name##Signal;
+public: core::EmptySignalOne name##Signal;
 
 #define _M_FIXED_SIGNAL_ONE(name, type) \
-public:                                 \
-	core::SignalOne<core::FixedEvent<type>, type> name##Signal;
+public: core::SignalOne<core::FixedEvent<type>, type> name##Signal;
 
-#define _M_SIGNAL_MANY(name) \
-public:                      \
-	core::EmptySignalMany name##Signal;
+#define _M_MANY_1(name) \
+public: core::EmptySignalMany name##Signal;
 
-#define _M_FIXED_SIGNAL_MANY(name, type) \
-public:                                  \
-	core::SignalMany<core::FixedEvent<type>, type> name##Signal;
+#define _M_MANY_2(name, type) \
+public: core::SignalMany<core::FixedEvent<type>, type> name##Signal;
+
+#define _M_MANY_3(name, type, pool) \
+public: core::SignalMany<core::FixedEvent<type>, type> name##Signal{pool};
+
+#define M_SIGNAL_MANY_POOL(name, pool) \
+public: core::EmptySignalMany name##Signal{pool};
 
 #endif // SIGNAL_H
+

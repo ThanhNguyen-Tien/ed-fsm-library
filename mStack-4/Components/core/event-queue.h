@@ -66,7 +66,7 @@ namespace core
 				return false;
 			}
 
-			uint32_t raw_id = slot->event_id;
+			uint32_t raw_id = __atomic_load_n(&slot->event_id, __ATOMIC_ACQUIRE);
 			if (!(raw_id & READY_BIT)) // Producer hasn't finished writing the event, wait for next turn (Yield)
 			{
 				Telemetry::log(TelemetryType::LOCK_FREE_YIELD);
@@ -120,8 +120,8 @@ namespace core
 				return false;
 			}
 
-			slot->event_id = 0; // Clean
-			evQueue.pop();		// Increase Tail to free up a slot in Ring Buffer
+			__atomic_store_n(&slot->event_id, 0, __ATOMIC_RELEASE); // Clear READY_BIT and ID
+			evQueue.pop();											// Increase Tail to free up a slot in Ring Buffer
 			return true;
 		}
 
@@ -130,7 +130,7 @@ namespace core
 			auto *s = evQueue.reserveAtomic(); // Protect by LDREX/STREX
 			if (s == nullptr)
 			{
-//				Error_Handler();
+				//				Error_Handler();
 				Telemetry::log(TelemetryType::EV_QUEUE_FULL, index);
 				return false;
 			}
@@ -138,10 +138,7 @@ namespace core
 			s->payload = payload;
 			s->timestamp = DWT->CYCCNT;
 
-			__DMB(); // Ensure payload/timestamp write successfully before set READY_BIT
-
-			// Set ID and Ready Bit
-			s->event_id = static_cast<uint32_t>(index) | READY_BIT;
+			__atomic_store_n(&s->event_id, static_cast<uint32_t>(index) | READY_BIT, __ATOMIC_RELEASE);
 
 			return true;
 		}

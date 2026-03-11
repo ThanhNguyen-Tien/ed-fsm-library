@@ -6,260 +6,205 @@
 #include <core/event-queue.h>
 #include <core/engine.h>
 #include <core/timer.h>
-#include <telematry/telemetry.h>
 
 namespace core
 {
-	class Strand : public Component
-	{
-	public:
-		Strand(Queue<EventSlot_t> &queue) : queue_(queue)
-		{
-		}
 
-		bool post(EmptyEvent *event, ByteEvent *finished = nullptr)
-		{
-			EventSlot_t *slot = queue_.reserveAtomic();
-			if (slot == nullptr)
-			{
-//				Error_Handler();
-				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
-				return false;
-			}
+    class Strand : public Component
+    {
+    public:
+        Strand(Queue<EventSlot_t> &queue) : queue_(queue) {}
 
-			uint32_t id = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
-			id |= (event->index_ & 0xFFU);
+        /**
+         * @brief Post an EmptyEvent to the Strand (SPSC).
+         * Only callable from a single producer context (e.g., State Machine).
+         */
+        bool post(EmptyEvent *event, ByteEvent *finished = nullptr)
+        {
+            EventSlot_t *slot = queue_.reserve();
+            if (slot == nullptr)
+            {
+                Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
+                return false;
+            }
 
-			slot->timestamp = DWT->CYCCNT;
-			__DMB();
-			slot->event_id = id | READY_BIT;
+            uint32_t id = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
+            id |= (event->index_ & 0xFFU);
 
-			next_();
-			return true;
-		}
+            slot->event_id = id;
+            slot->payload.u = 0;
 
-		template <typename E>
-		bool post(FixedEvent<E> *event, const E &e, ByteEvent *finished = nullptr)
-		{
-			EventSlot_t *slot = queue_.reserveAtomic();
-			if (slot == nullptr)
-			{
-//				Error_Handler();
-				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
-				return false;
-			}
+            queue_.commit();
+            next_();
+            return true;
+        }
 
-			uint32_t id = 0;
-			if (finished != nullptr)
-			{
-				id |= (CALLBACK << 16U);
-				id |= (static_cast<uint32_t>(finished->index_) << 8U);
-			}
-			else
-			{
-				id |= (VOID << 16U);
-			}
-			id |= (event->index_ & 0xFFU);
+        /**
+         * @brief Post a FixedEvent with payload to the Strand (SPSC).
+         */
+        template <typename E>
+        bool post(FixedEvent<E> *event, const E &e, ByteEvent *finished = nullptr)
+        {
+            EventSlot_t *slot = queue_.reserve();
+            if (slot == nullptr)
+            {
+                Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
+                return false;
+            }
 
-			if (sizeof(E) <= sizeof(uint32_t))
-			{
-				slot->payload.u = 0;
-				memcpy(&slot->payload.u, &e, sizeof(E));
-			}
-			else
-			{
-				void *mem = event->allocPayload();
-				if (!mem)
-				{
-//					Error_Handler();
-					Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
-					return false;
-				}
-				memcpy(mem, &e, sizeof(E));
-				slot->payload.p = mem;
-			}
-			slot->timestamp = DWT->CYCCNT;
+            uint32_t id = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
 
-			__DMB();
+            id |= (event->index_ & 0xFFU);
 
-			slot->event_id = id | READY_BIT;
+            // Handle Small vs Big FixedEvent payload
+            if (sizeof(E) <= sizeof(uint32_t))
+            {
+                slot->payload.u = 0;
+                memcpy(&slot->payload.u, &e, sizeof(E));
+            }
+            else
+            {
+                void *mem = event->allocPayload();
+                if (!mem)
+                {
+                    Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
+                    queue_.decresePeakOne(); // Roll back peak count since allocation failed
+                    return false;            // Note: reserve was done, but we don't commit, head doesn't move
+                }
+                memcpy(mem, &e, sizeof(E));
+                slot->payload.p = mem;
+            }
 
-			next_();
-			return true;
-		}
+            slot->event_id = id;
+            queue_.commit();
+            next_();
+            return true;
+        }
 
-		bool delay(uint32_t ms)
-		{
-			EventSlot_t *slot = queue_.reserveAtomic();
-			if (slot == nullptr)
-			{
-//				Error_Handler();
-				Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, DELAY);
-				return false;
-			}
+        /**
+         * @brief Post a delay event to the Strand (SPSC).
+         */
+        void delay(uint32_t ms)
+        {
+            EventSlot_t *slot = queue_.reserve();
+            if (slot == nullptr)
+                return;
 
-			slot->payload.u = ms;
-			slot->timestamp = DWT->CYCCNT;
-			__DMB();
-			slot->event_id = (DELAY << 16U) | READY_BIT;
+            slot->event_id = (DELAY << 16U);
+            slot->payload.u = ms;
 
-			next_();
-			return true;
-		}
+            queue_.commit();
+            next_();
+        }
 
-		/**
-		 * @brief Signals that the current event processing is finished.
-		 *
-		 * This must be called by the user (usually at the end of an event handler)
-		 * to allow the Strand to move to the next queued event.
-		 */
-		void done()
-		{
-			/*
-			 * ATOMIC STEP: Atomically set 'busy_' to 'false'.
-			 * __ATOMIC_RELEASE acts as a Memory Barrier, ensuring all data processed
-			 * in the current task is globally visible to other cores/DMA before we unlock.
-			 */
-			__atomic_clear(&busy_, __ATOMIC_RELEASE);
+        void done()
+        {
+            __atomic_clear(&busy_, __ATOMIC_RELEASE);
+            next_();
+        }
 
-			/* Trigger the next task if any */
-			next_();
-		}
+        void done(uint8_t error)
+        {
+            __atomic_clear(&busy_, __ATOMIC_RELEASE);
+            if (finished_ != nullptr)
+            {
+                finished_->post(error);
+            }
+            next_();
+        }
 
-		/**
-		 * @brief Signals completion with an error/status byte.
-		 * @param error Status code to be sent back via the 'finished_' event.
-		 */
-		void done(uint8_t error)
-		{
-			__atomic_clear(&busy_, __ATOMIC_RELEASE);
+    private:
+        enum EventType : uint32_t
+        {
+            VOID = 1,
+            CALLBACK,
+            DELAY
+        };
 
-			/* Optional: Notify a listener that this Strand sequence has ended/errored */
-			if (finished_ != nullptr)
-			{
-				finished_->post(error);
-			}
+        /**
+         * @brief Triggers the next execution trigger if not busy.
+         */
+        void next_()
+        {
+            // Use atomic test-and-set to ensure only one trigger is active
+            if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
+            {
+                return;
+            }
 
-			next_();
-		}
+            if (queue_.empty())
+            {
+                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+                return;
+            }
 
-	private:
-		enum EventType : uint32_t
-		{
-			VOID = 1,
-			CALLBACK,
-			DELAY
-		};
+            if (!executeEvent_.post())
+            {
+                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+            }
+        }
 
-		/**
-		 * @brief Attempts to trigger the next event execution in the Strand.
-		 *
-		 * This function uses a Lock-Free "Test-and-Set" mechanism to ensure that
-		 * ONLY ONE thread/interrupt can trigger the execution process at any given time.
-		 * It prevents race conditions where multiple interrupts might try to post
-		 * the executeEvent_ simultaneously.
-		 */
-		void next_()
-		{
-			/*
-			 * ATOMIC STEP: Read 'busy_' and set it to 'true' in a single, indivisible hardware operation.
-			 * __atomic_test_and_set returns the PREVIOUS value of 'busy_'.
-			 * - If it returns 'true': Someone else is already processing. We skip (Abort).
-			 * - If it returns 'false': We successfully "locked" the Strand. We proceed.
-			 * __ATOMIC_ACQUIRE ensures subsequent memory reads don't happen before this lock.
-			 */
-			if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
-			{
-				return; // Strand is currently busy or an execution is already scheduled.
-			}
+        void execute_()
+        {
+            EventSlot_t *slot = queue_.peekTail();
+            if (slot == nullptr)
+            {
+                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+                return;
+            }
 
-			/*
-			 * If the queue is empty, we must release the 'busy' lock so future 'post'
-			 * calls can trigger the Strand again.
-			 */
-			if (queue_.empty())
-			{
-				__atomic_clear(&busy_, __ATOMIC_RELEASE);
-				return;
-			}
+            uint32_t id = slot->event_id;
+            uint32_t type = (id >> 16U) & 0xFFU;
 
-			/*
-			 * Try to post the execution trigger to the System Engine.
-			 * If the system queue is full (post fails), we must release the 'busy' lock
-			 * so the next call to next_() has a chance to retry.
-			 */
-			if (!executeEvent_.post())
-			{
-				__atomic_clear(&busy_, __ATOMIC_RELEASE);
-			}
-		}
+            if (type == DELAY)
+            {
+                timer_.start(slot->payload.u, 1);
+                finished_ = nullptr;
+                // busy_ remains true, cleared in timeout_ or done()
+            }
+            else
+            {
+                if (type == CALLBACK)
+                {
+                    uint8_t cb_idx = static_cast<uint8_t>((id >> 8U) & 0xFFU);
+                    finished_ = (cb_idx < events_.poolSize_) ? (ByteEvent *)events_.events_[cb_idx] : nullptr;
+                }
+                else
+                {
+                    finished_ = nullptr;
+                }
 
-		void execute_()
-		{
-			EventSlot_t *slot = queue_.peekTail();
-			if (slot == nullptr)
-			{
-				__atomic_clear(&busy_, __ATOMIC_RELEASE);
-				return;
-			}
+                uint8_t ev_idx = static_cast<uint8_t>(id & 0xFFU);
+                if (ev_idx < events_.poolSize_)
+                {
+                    events_.events_[ev_idx]->execute(slot->payload);
+                }
+                // busy_ remains true, cleared by USER calling done()
+            }
 
-			// Check Ready Bit (In case the producer hasn't finished writing the event)
-			uint32_t raw_id = slot->event_id;
-			if (!(raw_id & READY_BIT))
-			{
-				// Repost itself to the EventQueue to wait for the next turn (Yield)
-				Telemetry::log(TelemetryType::LOCK_FREE_YIELD);
-//				executeEvent_.post();
-				return;
-			}
+            queue_.pop();
+        }
 
-			uint32_t type = (raw_id >> 16U) & 0x7FU; // Masking to remove Ready Bit (bit 31)
+        void timeout_()
+        {
+            __atomic_clear(&busy_, __ATOMIC_RELEASE);
+            next_();
+        }
 
-			if (type == DELAY)
-			{
-				uint32_t time = slot->payload.u;
-				timer_.start(time, 1);
-				finished_ = nullptr;
-			}
-			else
-			{
-				// Handle VOID or CALLBACK
-				if (type == CALLBACK)
-				{
-					uint8_t cb_idx = static_cast<uint8_t>((raw_id >> 8U) & 0xFFU);
-					finished_ = (cb_idx < events_.poolSize_) ? (ByteEvent *)events_.events_[cb_idx] : nullptr;
-				}
-				else
-				{
-					finished_ = nullptr;
-				}
-
-				uint8_t ev_idx = static_cast<uint8_t>(raw_id & 0xFFU);
-				if (ev_idx < events_.poolSize_)
-				{
-					events_.events_[ev_idx]->execute(slot->payload);
-				}
-			}
-
-			slot->event_id = 0;
-			queue_.pop();
-		}
-
-	private:
-		ByteEvent *finished_ = nullptr;
-		EmptyEvent executeEvent_ = EmptyEvent(this,
-											  static_cast<EmptyEvent::Handler>(&Strand::execute_));
-		EventQueue &events_ = Engine::instance().events();
-		Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::done));
-		Queue<EventSlot_t> &queue_;
-		volatile bool busy_ = false;
-	};
+    private:
+        ByteEvent *finished_ = nullptr;
+        EmptyEvent executeEvent_ = EmptyEvent(this, static_cast<EmptyEvent::Handler>(&Strand::execute_));
+        EventQueue &events_ = Engine::instance().events();
+        Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::timeout_));
+        Queue<EventSlot_t> &queue_;
+        volatile bool busy_ = false;
+    };
 }
 
 #define M_STRAND(name, size)                        \
 private:                                            \
-	QUEUE_DEF(name##Queue, size, core::EventSlot_t) \
+    QUEUE_DEF(name##Queue, size, core::EventSlot_t) \
 public:                                             \
-	core::Strand name##Strand{core::Strand(name##Queue##_)};
+    core::Strand name##Strand{core::Strand(name##Queue##_)};
 
 #endif // STRAND_H

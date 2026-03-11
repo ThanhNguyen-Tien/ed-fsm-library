@@ -88,7 +88,7 @@ void Test::init()
 //    fixedManySignal.connect(&fixedManyEvent);
 //    fixedManySignal.connect(&fixedMany_1Event);
 //
-    SM_START(Idle);
+    SM_START(Running);
     LOG_DEBUG_PRINT("Hello Thanh Neymar");
 }
 
@@ -216,17 +216,9 @@ M_EVENT_HANDLER(Test, stress, stress_data_t)
         Telemetry::log(TelemetryType::CHECKSUM_ERR, (uint16_t)event.producer_id);
     }
 
-    // 2. Kiểm tra Strand: Có đảm bảo Sequential (tuần tự) không?
-    static volatile uint32_t concurrency_guard = 0;
-    if (__atomic_fetch_add(&concurrency_guard, 1, __ATOMIC_ACQUIRE) > 0) {
-        // LỖI: busy_ flag thất bại, 2 task đang chạy song song trong 1 strand
-        Telemetry::log(TelemetryType::STRAND_CONCURRENCY_ERR, 1);
-    }
-
     // Giả lập làm việc nặng để tạo hàng đợi (Queue Saturation)
-    for(volatile int i=0; i<1000; i++);
+    for(volatile int i=0; i<1200; i++);
 
-    __atomic_fetch_sub(&concurrency_guard, 1, __ATOMIC_RELEASE);
 
     // 3. Giải phóng Strand để chạy event tiếp theo
     stressStrand.done();
@@ -240,12 +232,6 @@ extern "C" void TIM3_IRQHandler(void)
 		LL_TIM_ClearFlag_UPDATE(TIM3);
 	    static uint32_t seqA = 0;
 	    stress_data_t d = { seqA, 0xAABB, seqA ^ 0xAABB };
-
-	    // Test Strand & EventQueue:
-	    // Nếu reserveAtomic hoặc postSlot lỗi, log lại ngay
-	    if (!Test::instance().stressStrand.post<stress_data_t>(&Test::instance().stressEvent, d)) {
-	    	LOG_ERROR_PRINT("TIM3 - Failed to post stress event to strand");
-	    }
 
 	    if (!Test::instance().stressEvent.post(d)) {
 	    	LOG_ERROR_PRINT("TIM3 - Failed to post stress event to event queue");
@@ -263,9 +249,6 @@ extern "C" void TIM4_IRQHandler(void)
 	    static uint32_t seqB = 0;
 	    stress_data_t d = { seqB, 0xCCDD, seqB ^ 0xCCDD };
 
-	    if (!Test::instance().stressStrand.post<stress_data_t>(&Test::instance().stressEvent, d)) {
-	    	LOG_ERROR_PRINT("TIM4 - Failed to post stress event to strand");
-	    }
 	    if (!Test::instance().stressEvent.post(d)) {
 	    	LOG_ERROR_PRINT("TIM4 - Failed to post stress event to event queue");
 	    }

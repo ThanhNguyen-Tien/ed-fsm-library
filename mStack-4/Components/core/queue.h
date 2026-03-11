@@ -22,45 +22,89 @@ namespace core
             assert((size & (size - 1)) == 0); // size must be power of 2
         }
 
-        inline T* reserveAtomic() {
-            uint32_t oldHead, newHead;
-            uint32_t retry_count = 0;
+        /**
+         * @brief SPSC Reserve (For Strand)
+         * Only one producer allowed. No LDREX/STREX needed.
+         */
+        inline T *reserve()
+        {
+            uint32_t h = head_;
+            // Load tail with Acquire to see latest updates from Consumer
+            uint32_t t = __atomic_load_n(&tail_, __ATOMIC_ACQUIRE);
 
-            for (;;) {
-                oldHead = __LDREXW(&head_);
-                uint32_t currentUsed = oldHead - tail_;
-                if (currentUsed >= size_) {
+            if ((h - t) >= size_)
+                return nullptr;
+
+            uint32_t used = h - t;
+            if (used + 1 > maxUsed_)
+                maxUsed_ = used + 1;
+
+            return &buf_[h & mask_];
+        }
+
+        /**
+         * @brief SPSC Commit (For Strand)
+         * Makes the reserved slot visible to the Consumer.
+         */
+        inline void commit()
+        {
+            // Ensure payload is written to RAM before updating head
+            __atomic_store_n(&head_, head_ + 1, __ATOMIC_RELEASE);
+        }
+
+        /**
+         * @brief MPSC Reserve (For EventQueue)
+         * Safe for multiple producers (Interrupts/Threads).
+         */
+        inline T *reserveAtomic()
+        {
+            uint32_t oldH, newH;
+            uint32_t retry_count = 0;
+            for (;;)
+            {
+                oldH = __LDREXW(&head_);
+                uint32_t currentTail = __atomic_load_n(&tail_, __ATOMIC_ACQUIRE);
+                uint32_t used = oldH - currentTail;
+
+                if (used >= size_)
+                {
                     __CLREX();
                     return nullptr;
                 }
 
-                if (currentUsed + 1 > maxUsed_) maxUsed_ = currentUsed + 1;
+                if (used + 1 > maxUsed_)
+                    maxUsed_ = used + 1;
 
-                newHead = oldHead + 1;
-                if (__STREXW(newHead, &head_) == 0) {
-                    break; // Thành công
+                newH = oldH + 1;
+                if (__STREXW(newH, &head_) == 0)
+                {
+                    break; // Success
                 }
-                retry_count++; // Bắt được tranh chấp tại Queue!
+                retry_count++;
             }
             __DMB();
 
-            if (retry_count > 0) {
+            if (retry_count > 0)
+            {
                 Telemetry::log(TelemetryType::QUEUE_CONTENTION, (uint16_t)retry_count);
             }
-            return &buf_[oldHead & mask_];
+
+            return &buf_[oldH & mask_];
         }
 
         inline T *peekTail()
         {
-            if (head_ == tail_)
+            // Load head with Acquire to see latest updates from Producer
+            uint32_t h = __atomic_load_n(&head_, __ATOMIC_ACQUIRE);
+            if (h == tail_)
                 return nullptr;
             return &buf_[tail_ & mask_];
         }
 
         inline void pop()
         {
-            __DMB();
-            tail_ = tail_ + 1;
+            // Ensure Consumer finished reading before releasing slot
+            __atomic_store_n(&tail_, tail_ + 1, __ATOMIC_RELEASE);
         }
 
         inline bool empty() const { return head_ == tail_; }
@@ -69,15 +113,21 @@ namespace core
         inline uint32_t getTail() const { return tail_; }
         inline uint32_t peakUsed() const { return maxUsed_; }
 
-        void reset()
+        inline void reset()
         {
             head_ = 0;
             tail_ = 0;
         }
 
-        void resetPeak()
+        inline void resetPeak()
         {
             maxUsed_ = 0;
+        }
+
+        inline void decresePeakOne()
+        {
+            if (maxUsed_ > 0)
+                maxUsed_--;
         }
 
     private:
