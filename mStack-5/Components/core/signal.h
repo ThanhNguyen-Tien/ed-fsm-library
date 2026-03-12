@@ -50,12 +50,15 @@ namespace core
             }
 
             void* mem = pool_.Alloc(); // Dùng pool được chỉ định
-            if (!mem) return;
+            if (!mem) {
+                Telemetry::log(TelemetryType::SIGNAL_POOL_FULL);
+                return;
+            }
 
             Connection *con = static_cast<Connection*>(mem);
             con->event = event;
             con->next = (Connection*)connections_;
-            // Release để ISR (emit) thấy node mới hoàn chỉnh
+            // Release to ensure the new connection is visible before updating the head pointer
             __atomic_store_n(&connections_, con, __ATOMIC_RELEASE);
         }
 

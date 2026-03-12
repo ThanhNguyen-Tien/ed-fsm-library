@@ -16,6 +16,7 @@ namespace core {
     	NONE = 0,
         EV_QUEUE_FULL,
 		STRAND_QUEUE_FULL,
+		SIGNAL_POOL_FULL,
         QUEUE_CONTENTION,
         LOCK_FREE_YIELD,
         MEMPOOL_ALLOC_FAIL,
