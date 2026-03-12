@@ -75,7 +75,7 @@ public:
 		return true;
 	}
 
-	inline void postSlot(uint8_t index, EventPayload payload) {
+	inline void postSlot(uint8_t index, EventPayload& payload) {
 
 		EventSlot_t slot;
 		slot.event_id = static_cast<uint32_t>(index);

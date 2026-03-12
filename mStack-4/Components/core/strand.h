@@ -26,11 +26,9 @@ public:
 		}
 		slot.event_id |= (event->index_)&0xFFU;
 
-		CRITICAL_SECTION_PRIORITY_BEGIN(1)
 		if(!queue_.push(slot)) {
 			Error_Handler();	// FIXME: Log error instead of halting system
 		}
-		CRITICAL_SECTION_PRIORITY_END
 
 		next_();
 	}
@@ -51,13 +49,6 @@ public:
 		{
 			slot.payload.u = 0;
 			memcpy(&slot.payload.u, &e, sizeof(E));
-
-			CRITICAL_SECTION_PRIORITY_BEGIN(1)
-			if(!queue_.push(slot)) {
-				Error_Handler();	// FIXME: Log error instead of halting system
-			}
-			CRITICAL_SECTION_PRIORITY_END
-
 		} else	// BigFixedEvent
 		{
 			MemPool<E> *tempPool = static_cast<BigFixedEvent<E>*>(event)->pool_;
@@ -74,13 +65,12 @@ public:
 
 			memcpy(mem, &e, sizeof(E));
 			slot.payload.p = mem;
-
-			CRITICAL_SECTION_PRIORITY_BEGIN(1)
-			if(!queue_.push(slot)) {
-				Error_Handler();	// FIXME: Log error instead of halting system
-			}
-			CRITICAL_SECTION_PRIORITY_END
 		}
+
+		if(!queue_.push(slot)) {
+			Error_Handler();	// FIXME: Log error instead of halting system
+		}
+
 		next_();
 	}
 
@@ -90,11 +80,9 @@ public:
 		slot.event_id |= (DELAY) << 16U;
 		slot.payload.u = ms;
 
-		CRITICAL_SECTION_PRIORITY_BEGIN(1)
 		if(!queue_.push(slot)) {
 			Error_Handler();	// FIXME: Log error instead of halting system
 		}
-		CRITICAL_SECTION_PRIORITY_END
 
 		next_();
 	}
