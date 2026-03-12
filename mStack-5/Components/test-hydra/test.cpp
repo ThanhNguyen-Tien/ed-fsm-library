@@ -84,11 +84,14 @@ void Test::init()
 
     emptySignal.connect(&emptySignalReceivedEvent);
     fixedSignal.connect(&fixedSignalReceivedEvent);
+    fixedManySignal.connect(&fixedManyEvent);
+    fixedManySignal.connect(&fixedMany_1Event);
+
 //
-//    fixedManySignal.connect(&fixedManyEvent);
-//    fixedManySignal.connect(&fixedMany_1Event);
-//
-    SM_START(Running);
+    INIT_STATE(IDLE, Idle);
+    INIT_STATE(RUNNING, Running);
+    SM_START(IDLE);
+
     LOG_DEBUG_PRINT("Hello Thanh Neymar");
 }
 
@@ -107,6 +110,9 @@ M_TIMER_HANDLER(Test, testLog)
 {
 	emptyEvent.post();
 	fixedManyEvent.post(fake_);
+	emptySignal.emit();
+	fixedSignal.emit(cosine_[angle_]);
+	fixedManySignal.emit(fake_);
 	fake_.f0 += 1.0;
 	fake_.f1 += 1.0;
 	fake_.f2 += 10;
@@ -121,8 +127,6 @@ M_TIMER_HANDLER(Test, testLog)
 
 M_TIMER_HANDLER(Test, plot)
 {
-//	emptySignal.emit();
-//	fixedSignal.emit(cosine_[angle_]);
 	MC_PLOT(4, triangle_[angle_]);
 	MC_PLOT(5, half_sine_[angle_]);
 	MC_PLOT(6, chirp_[angle_]);
@@ -210,17 +214,16 @@ U_TEXT_HANDLER(Test, name)
 
 M_EVENT_HANDLER(Test, stress, stress_data_t)
 {
-    // 1. Kiểm tra MemPool: Dữ liệu có bị ghi đè chéo không?
+    // Verify checksum to detect if LDREX/STREX in MemPool is working correctly
     if (event.checksum != (event.seq ^ event.producer_id)) {
-        // LỖI: LDREX/STREX trong MemPool không bảo vệ được vùng nhớ
+        // Error detected, log telemetry with producer_id for debugging
         Telemetry::log(TelemetryType::CHECKSUM_ERR, (uint16_t)event.producer_id);
     }
 
-    // Giả lập làm việc nặng để tạo hàng đợi (Queue Saturation)
+    // Simulate some processing delay to increase chance of contention and stress test the system
     for(volatile int i=0; i<1200; i++);
 
-
-    // 3. Giải phóng Strand để chạy event tiếp theo
+    // Unlock Strand slot after processing
     stressStrand.done();
 }
 

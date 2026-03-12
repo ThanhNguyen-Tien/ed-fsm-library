@@ -28,20 +28,20 @@ namespace core
          */
         inline T *reserve()
         {
-            uint32_t h = head_;
-            // Load tail with Acquire to see latest updates from Consumer
+            uint32_t h = __atomic_load_n(&head_, __ATOMIC_RELAXED);
             uint32_t t = __atomic_load_n(&tail_, __ATOMIC_ACQUIRE);
 
-            if ((h - t) >= size_)
-                return nullptr;
+            if ((h - t) >= size_) return nullptr;
 
             uint32_t used = h - t;
-            if (used + 1 > maxUsed_)
-                maxUsed_ = used + 1;
+            // Update peakUsed using Relaxed atomic
+            uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
+            if (used + 1 > currentPeak) {
+                __atomic_store_n(&peakUsed_, used + 1, __ATOMIC_RELAXED);
+            }
 
             return &buf_[h & mask_];
         }
-
         /**
          * @brief SPSC Commit (For Strand)
          * Makes the reserved slot visible to the Consumer.
@@ -72,8 +72,10 @@ namespace core
                     return nullptr;
                 }
 
-                if (used + 1 > maxUsed_)
-                    maxUsed_ = used + 1;
+                uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
+                if (used + 1 > currentPeak) {
+                    __atomic_store_n(&peakUsed_, used + 1, __ATOMIC_RELAXED);
+                }
 
                 newH = oldH + 1;
                 if (__STREXW(newH, &head_) == 0)
@@ -107,36 +109,46 @@ namespace core
             __atomic_store_n(&tail_, tail_ + 1, __ATOMIC_RELEASE);
         }
 
-        inline bool empty() const { return head_ == tail_; }
-        inline uint32_t used() const { return (head_ - tail_); }
-        inline uint32_t getHead() const { return head_; }
-        inline uint32_t getTail() const { return tail_; }
-        inline uint32_t peakUsed() const { return maxUsed_; }
-
-        inline void reset()
-        {
-            head_ = 0;
-            tail_ = 0;
+        inline bool empty() const { 
+            return __atomic_load_n(&head_, __ATOMIC_RELAXED) == __atomic_load_n(&tail_, __ATOMIC_RELAXED); 
         }
 
-        inline void resetPeak()
-        {
-            maxUsed_ = 0;
+        inline uint32_t used() const { 
+            return (__atomic_load_n(&head_, __ATOMIC_RELAXED) - __atomic_load_n(&tail_, __ATOMIC_RELAXED)); 
         }
 
-        inline void decresePeakOne()
+        inline uint32_t peakUsed() const { 
+            return __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED); 
+        }
+
+        inline void reset() {
+            __atomic_store_n(&head_, 0, __ATOMIC_RELAXED);
+            __atomic_store_n(&tail_, 0, __ATOMIC_RELAXED);
+        }
+
+        inline void resetPeak() {
+            __atomic_store_n(&peakUsed_, 0, __ATOMIC_RELAXED);
+        }
+
+        inline uint32_t getHead() const { return __atomic_load_n(&head_, __ATOMIC_RELAXED); }
+        inline uint32_t getTail() const { return __atomic_load_n(&tail_, __ATOMIC_RELAXED); }
+
+        inline void decreasePeakOne()
         {
-            if (maxUsed_ > 0)
-                maxUsed_--;
+            uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
+            if (currentPeak > 0)
+            {
+                __atomic_store_n(&peakUsed_, currentPeak - 1, __ATOMIC_RELAXED);
+            }
         }
 
     private:
         T *const buf_;
-        //	alignas(32) volatile uint32_t head_ = 0;	// align to cache line to avoid false sharing between head and tail, M7 has 32-byte cache line size
-        //	alignas(32) volatile uint32_t tail_ = 0;
-        volatile uint32_t head_ = 0;
-        volatile uint32_t tail_ = 0;
-        volatile uint32_t maxUsed_ = 0;
+        // Move the head_ and tail_ values ​​far apart so they don't share a single cache line (32 bytes/ M7, R5)
+        // This is extremely important when we later run Core 0 post and Core 1 execute.
+        alignas(32) uint32_t head_ = 0;
+        alignas(32) uint32_t tail_ = 0;
+        uint32_t peakUsed_ = 0; 
         const uint32_t size_;
         const uint32_t mask_;
     };

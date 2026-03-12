@@ -65,6 +65,11 @@ public:
 	void init();
 
 private:
+    STATE_MAP_BEGIN
+        IDLE,
+        RUNNING,
+    STATE_MAP_END
+
 	STATE_DEF(Idle)
 	STATE_DEF(Running)
 

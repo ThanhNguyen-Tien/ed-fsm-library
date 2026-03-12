@@ -68,7 +68,7 @@ namespace core
                 if (!mem)
                 {
                     Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
-                    queue_.decresePeakOne(); // Roll back peak count since allocation failed
+                    queue_.decreasePeakOne(); // Roll back peak count since allocation failed
                     return false;            // Note: reserve was done, but we don't commit, head doesn't move
                 }
                 memcpy(mem, &e, sizeof(E));
@@ -126,7 +126,19 @@ namespace core
          */
         void next_()
         {
-            // Use atomic test-and-set to ensure only one trigger is active
+            /*
+             * ATOMIC "TEST-AND-SET" (The Latch)
+             * 1. Read current value of 'busy_'.
+             * 2. Set 'busy_' to 'true' atomically.
+             * 3. Return the PREVIOUS value.
+             * 
+             * If it returns 'true': The Strand is already busy processing an event 
+             * or a trigger is already scheduled. We ABORT here to prevent 
+             * redundant triggers.
+             * 
+             * __ATOMIC_ACQUIRE ensures that subsequent reads (like queue_.empty()) 
+             * don't happen before we successfully "lock" the latch.
+             */
             if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
             {
                 return;
@@ -197,7 +209,7 @@ namespace core
         EventQueue &events_ = Engine::instance().events();
         Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::timeout_));
         Queue<EventSlot_t> &queue_;
-        volatile bool busy_ = false;
+        bool busy_ = false;
     };
 }
 

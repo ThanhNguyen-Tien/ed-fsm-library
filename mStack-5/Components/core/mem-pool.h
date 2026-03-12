@@ -15,11 +15,9 @@
 
 namespace core
 {
-
     template <typename T>
     class MemPool
     {
-
     private:
         static const uint8_t INVALID_INDEX = 0xFF;
 
@@ -51,14 +49,13 @@ namespace core
          * 15.....8 | 7.....0
          * version  | index
          */
-        volatile uint16_t freeHead_;
-
+        uint16_t freeHead_;
         uint8_t capacity_;
-        volatile uint8_t used_;
-        volatile uint8_t peakUsed_;
+        uint8_t used_;
+        uint8_t peakUsed_;
 
     private:
-        static inline uint8_t atomic_inc_u8(volatile uint8_t *addr)
+        static inline uint8_t atomic_inc_u8(uint8_t *addr)
         {
             uint32_t old;
             uint32_t res;
@@ -71,7 +68,7 @@ namespace core
             return (uint8_t)(old + 1);
         }
 
-        static inline uint8_t atomic_dec_u8(volatile uint8_t *addr)
+        static inline uint8_t atomic_dec_u8(uint8_t *addr)
         {
             uint32_t old;
             uint32_t res;
@@ -159,8 +156,10 @@ namespace core
             }
 
             uint8_t u = atomic_inc_u8(&used_);
-            if (u > peakUsed_)
-                peakUsed_ = u;
+            uint8_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
+            if (u > currentPeak) {
+                __atomic_store_n(&peakUsed_, u, __ATOMIC_RELAXED);
+            }
 
             return (uint8_t *)unit + PAYLOAD_OFFSET;
         }
@@ -201,14 +200,15 @@ namespace core
         }
 
     public:
+        inline uint8_t used() const { 
+            return __atomic_load_n(&used_, __ATOMIC_RELAXED); 
+        }
+
+        inline uint8_t peak() const { 
+            return __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED); 
+        }
         inline uint8_t capacity() const { return capacity_; }
-
-        inline uint8_t used() const { return used_; }
-
         inline uint8_t free() const { return capacity_ - used_; }
-
-        inline uint8_t peak() const { return peakUsed_; }
-
         inline bool isFull() const { return used_ >= capacity_; }
     };
 

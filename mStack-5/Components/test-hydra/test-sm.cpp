@@ -15,7 +15,7 @@ STATE_BODY(Test::Idle)
 		timer_.stop();
 		core::Engine::instance().events().resetEventsMeasurements();
 	}
-	TRANSITION_(Event::START, Running) {}
+	TRANSITION_(Event::START, RUNNING) {}
 }
 
 STATE_BODY(Test::Running)
@@ -27,7 +27,7 @@ STATE_BODY(Test::Running)
 		LL_TIM_EnableCounter(TIM4);
 		timer_.start(5);
 	}
-	TRANSITION_(Event::STOP, Idle) {}
+	TRANSITION_(Event::STOP, IDLE) {}
 	TIMEOUT_()
 	{
 		LL_GPIO_TogglePin(GPIOA, LL_GPIO_PIN_5);

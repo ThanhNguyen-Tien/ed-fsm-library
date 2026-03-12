@@ -1,17 +1,23 @@
 #ifndef CORE_SIGNAL_H
 #define CORE_SIGNAL_H
+
 #include <core/event.h>
-#include <core/base.h>
 #include <core/mem-pool.h>
 
 namespace core
 {
-	struct SignalConnection {
-		void* event;
-		SignalConnection* next;
-	};
-	extern MemPool<SignalConnection> defaultSignalPool;
+    /**
+     * @brief Internal node for SignalMany connections.
+     * Aligned to 4-bytes for single-cycle access on ARM Cortex-M/R.
+     */
+    struct alignas(4) SignalNode {
+        void* event;      
+        SignalNode* next; 
+    };
 
+    extern MemPool<SignalNode> defaultSignalPool;
+
+    // --- SignalOne (SPSC, No Pool) ---
     class EmptySignalOne {
     public:
         void connect(EmptyEvent *event) { this->event_ = event; }
@@ -31,65 +37,64 @@ namespace core
         EV *event_ = nullptr;
     };
 
+    // --- BaseSignalMany (SPSC Management, Thread-safe Emit) ---
     template <class E>
     class BaseSignalMany {
-    protected:
-        struct Connection {
-            E *event;
-            Connection *next;
-        };
-
     public:
-        BaseSignalMany(MemPool<SignalConnection>& pool = defaultSignalPool)
-            : pool_(pool) {}
+        BaseSignalMany(MemPool<SignalNode>& pool = defaultSignalPool) : pool_(pool) {}
 
         void connect(E *event) {
-            // SPSC: Only call from Main loop, check duplicate
-            for (Connection *it = (Connection*)connections_; it != nullptr; it = it->next) {
-                if (it->event == event) return;
+            // SPSC: Only from Main loop. Use Acquire to see latest list state.
+            SignalNode* it = __atomic_load_n(&nodes_, __ATOMIC_ACQUIRE);
+            while (it != nullptr) {
+                if (it->event == static_cast<void*>(event)) return;
+                it = it->next;
             }
 
-            void* mem = pool_.Alloc(); // Dùng pool được chỉ định
-            if (!mem) {
-                Telemetry::log(TelemetryType::SIGNAL_POOL_FULL);
-                return;
-            }
+            void* mem = pool_.Alloc();
+            if (!mem) return;
 
-            Connection *con = static_cast<Connection*>(mem);
-            con->event = event;
-            con->next = (Connection*)connections_;
-            // Release to ensure the new connection is visible before updating the head pointer
-            __atomic_store_n(&connections_, con, __ATOMIC_RELEASE);
+            SignalNode* newNode = static_cast<SignalNode*>(mem);
+            newNode->event = static_cast<void*>(event);
+            
+            // Release: Payload (event pointer) must be written before making node visible
+            newNode->next = __atomic_load_n(&nodes_, __ATOMIC_RELAXED);
+            __atomic_store_n(&nodes_, newNode, __ATOMIC_RELEASE);
         }
 
         void disconnect(E *event) {
-            Connection *pre = nullptr;
-            for (Connection *it = (Connection*)connections_; it != nullptr; it = it->next) {
-                if (it->event == event) {
+            SignalNode* pre = nullptr;
+            SignalNode* it = __atomic_load_n(&nodes_, __ATOMIC_ACQUIRE);
+            
+            while (it != nullptr) {
+                if (it->event == static_cast<void*>(event)) {
                     if (pre == nullptr)
-                        __atomic_store_n(&connections_, it->next, __ATOMIC_RELEASE);
+                        __atomic_store_n(&nodes_, it->next, __ATOMIC_RELEASE);
                     else
                         pre->next = it->next;
-
+                    
                     pool_.Free(it);
                     return;
                 }
                 pre = it;
+                it = it->next;
             }
         }
 
     protected:
-        MemPool<SignalConnection>& pool_;
-        volatile Connection *connections_ = nullptr;
+        MemPool<SignalNode>& pool_;
+        SignalNode* nodes_ = nullptr; // Atomic ops handle visibility/ordering
     };
 
+    // --- Specific SignalMany Classes ---
     class EmptySignalMany : public BaseSignalMany<EmptyEvent> {
     public:
         using BaseSignalMany<EmptyEvent>::BaseSignalMany;
         inline void emit() {
-            Connection *it = (Connection*)__atomic_load_n(&connections_, __ATOMIC_ACQUIRE);
-            for (; it != nullptr; it = it->next) {
-                if (it->event) it->event->post();
+            SignalNode* it = __atomic_load_n(&nodes_, __ATOMIC_ACQUIRE);
+            while (it) {
+                static_cast<EmptyEvent*>(it->event)->post();
+                it = it->next;
             }
         }
     };
@@ -99,23 +104,18 @@ namespace core
     public:
         using BaseSignalMany<EV>::BaseSignalMany;
         inline void emit(E e) {
-            auto it = (typename BaseSignalMany<EV>::Connection*)__atomic_load_n(&this->connections_, __ATOMIC_ACQUIRE);
-            for (; it != nullptr; it = it->next) {
-                if (it->event) it->event->post(e);
+            SignalNode* it = __atomic_load_n(&this->nodes_, __ATOMIC_ACQUIRE);
+            while (it) {
+                static_cast<EV*>(it->event)->post(e);
+                it = it->next;
             }
         }
     };
 }
 
-// --- MACRO FUNCTIONS --
-#define M_SIGNAL(...) _M_MACRO_2(__VA_ARGS__, _M_FIXED_SIGNAL_ONE, _M_SIGNAL_ONE)(__VA_ARGS__)
-#define M_SIGNAL_MANY(...) _M_MACRO_3(__VA_ARGS__, _M_MANY_3, _M_MANY_2, _M_MANY_1)(__VA_ARGS__)
-
-#define _M_SIGNAL_ONE(name) \
-public: core::EmptySignalOne name##Signal;
-
-#define _M_FIXED_SIGNAL_ONE(name, type) \
-public: core::SignalOne<core::FixedEvent<type>, type> name##Signal;
+// --- Macros ---
+#define _M_GET_MANY_ARG(_1, _2, _3, NAME, ...) NAME
+#define M_SIGNAL_MANY(...) _M_GET_MANY_ARG(__VA_ARGS__, _M_MANY_3, _M_MANY_2, _M_MANY_1)(__VA_ARGS__)
 
 #define _M_MANY_1(name) \
 public: core::EmptySignalMany name##Signal;
@@ -129,5 +129,13 @@ public: core::SignalMany<core::FixedEvent<type>, type> name##Signal{pool};
 #define M_SIGNAL_MANY_POOL(name, pool) \
 public: core::EmptySignalMany name##Signal{pool};
 
-#endif // SIGNAL_H
+#define _M_GET_ONE_ARG(_1, _2, NAME, ...) NAME
+#define M_SIGNAL(...) _M_GET_ONE_ARG(__VA_ARGS__, _M_FIXED_SIGNAL_ONE, _M_SIGNAL_ONE)(__VA_ARGS__)
 
+#define _M_SIGNAL_ONE(name) \
+public: core::EmptySignalOne name##Signal;
+
+#define _M_FIXED_SIGNAL_ONE(name, type) \
+public: core::SignalOne<core::FixedEvent<type>, type> name##Signal;
+
+#endif
