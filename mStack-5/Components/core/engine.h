@@ -34,46 +34,46 @@ namespace core
 
 		inline void isrEnter(void)
 		{
-			if (cpu_stats_.in_idle)
+			if (this->cpu_stats_.in_idle)
 			{
 				uint32_t now = DWT->CYCCNT;
-				cpu_stats_.idle_cycles += (now - cpu_stats_.last_idle_start);
-				cpu_stats_.in_idle = 0;
+				this->cpu_stats_.idle_cycles += (now - this->cpu_stats_.last_idle_start);
+				this->cpu_stats_.in_idle = 0;
 			}
 		}
 
 		inline void tick() /* must be called in timer interrupt or SysTick interrupt, usually 1ms */
 		{
-			if (++tickCount_ >= nextTick_)
+			if (++this->tickCount_ >= this->nextTick_)
 			{
-				events_.post(index_);
+				this->events_.post(index_);
 			}
 		}
 
 		inline uint64_t tickCount()
 		{
-			return tickCount_;
+			return this->tickCount_;
 		}
 		void delay(uint32_t t); // t in ms, WARNING: blocking, use only in limited contexts
 		EventQueue &events()
 		{
-			return events_;
+			return this->events_;
 		}
 		float getCpuLoad()
 		{
-			return cpu_stats_.cpu_load;
+			return this->cpu_stats_.cpu_load;
 		}
 		uint16_t checkNumOfEvent()
 		{
-			return events_.poolSize_;
+			return this->events_.poolSize_;
 		}
 
 	private:
 		Engine();
 		inline void idle_(void)
 		{
-			cpu_stats_.last_idle_start = DWT->CYCCNT;
-			cpu_stats_.in_idle = 1;
+			this->cpu_stats_.last_idle_start = DWT->CYCCNT;
+			this->cpu_stats_.in_idle = 1;
 
 			WAIT_FOR_INTERRUPT;
 		}

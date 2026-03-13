@@ -108,14 +108,14 @@ namespace core
 
             for (uint8_t i = 0; i < unitNum; ++i)
             {
-                uint8_t *addr = pMemBlock_ + i * STRIDE;
+                uint8_t *addr = this->pMemBlock_ + i * STRIDE;
                 Unit *unit = static_cast<Unit *>((void *)addr);
 
                 unit->index = i;
                 unit->next =
                     (i + 1 < unitNum) ? (i + 1) : INVALID_INDEX;
             }
-            freeHead_ = makeHead(0, 0);
+            this->freeHead_ = this->makeHead(0, 0);
         }
 
     public:
@@ -127,8 +127,8 @@ namespace core
 
             for (;;)
             {
-                oldHead = __LDREXH(&freeHead_);
-                uint8_t index = headIndex(oldHead);
+                oldHead = __LDREXH(&this->freeHead_);
+                uint8_t index = this->headIndex(oldHead);
 
                 if (index == INVALID_INDEX)
                 {
@@ -136,11 +136,11 @@ namespace core
                     return nullptr;
                 }
 
-                uint8_t version = headVersion(oldHead);
-                uint8_t *addr = pMemBlock_ + index * STRIDE;
+                uint8_t version = this->headVersion(oldHead);
+                uint8_t *addr = this->pMemBlock_ + index * STRIDE;
                 unit = static_cast<Unit *>((void *)addr);
 
-                newHead = makeHead(unit->next, version + 1);
+                newHead = this->makeHead(unit->next, version + 1);
 
                 if (__STREXH(newHead, &freeHead_) == 0)
                 {
@@ -155,10 +155,11 @@ namespace core
                 Telemetry::log(TelemetryType::MEMPOOL_ALLOC_CONTENTION, (uint16_t)retry_count);
             }
 
-            uint8_t u = atomic_inc_u8(&used_);
-            uint8_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
-            if (u > currentPeak) {
-                __atomic_store_n(&peakUsed_, u, __ATOMIC_RELAXED);
+            uint8_t u = atomic_inc_u8(&this->used_);
+            uint8_t currentPeak = __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
+            if (u > currentPeak)
+            {
+                __atomic_store_n(&this->peakUsed_, u, __ATOMIC_RELAXED);
             }
 
             return (uint8_t *)unit + PAYLOAD_OFFSET;
@@ -175,16 +176,16 @@ namespace core
 
             for (;;)
             {
-                oldHead = __LDREXH(&freeHead_);
-                uint8_t headIdx = headIndex(oldHead);
-                uint8_t version = headVersion(oldHead);
+                oldHead = __LDREXH(&this->freeHead_);
+                uint8_t headIdx = this->headIndex(oldHead);
+                uint8_t version = this->headVersion(oldHead);
 
                 unit->next = headIdx;
                 __DMB(); // Ensure 'next' is set before updating head
 
-                newHead = makeHead(index, version + 1);
+                newHead = this->makeHead(index, version + 1);
 
-                if (__STREXH(newHead, &freeHead_) == 0)
+                if (__STREXH(newHead, &this->freeHead_) == 0)
                 {
                     break; // Success
                 }
@@ -196,22 +197,23 @@ namespace core
                 Telemetry::log(TelemetryType::MEMPOOL_FREE_CONTENTION, (uint16_t)retry_count);
             }
 
-            static_cast<void>(atomic_dec_u8(&used_));
+            static_cast<void>(atomic_dec_u8(&this->used_));
         }
 
     public:
-        inline uint8_t used() const { 
-            return __atomic_load_n(&used_, __ATOMIC_RELAXED); 
+        inline uint8_t used() const
+        {
+            return __atomic_load_n(&this->used_, __ATOMIC_RELAXED);
         }
 
-        inline uint8_t peak() const { 
-            return __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED); 
+        inline uint8_t peak() const
+        {
+            return __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
         }
-        inline uint8_t capacity() const { return capacity_; }
-        inline uint8_t free() const { return capacity_ - used_; }
-        inline bool isFull() const { return used_ >= capacity_; }
+        inline uint8_t capacity() const { return this->capacity_; }
+        inline uint8_t free() const { return this->capacity_ - this->used_; }
+        inline bool isFull() const { return this->used_ >= this->capacity_; }
     };
-
 }
 
 #endif

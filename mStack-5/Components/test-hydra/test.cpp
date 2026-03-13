@@ -78,8 +78,8 @@ void Test::init()
 	LL_TIM_EnableIT_UPDATE(TIM3);
 	LL_TIM_EnableIT_UPDATE(TIM4);
 
-    plotTimer_.start(5); //100Hz
-    oscilloscopeTimer_.start(2);
+    plotTimer_.start(10); //100Hz
+    oscilloscopeTimer_.start(1);
     testLogTimer_.start(1000);
 
     emptySignal.connect(&emptySignalReceivedEvent);
@@ -97,12 +97,13 @@ void Test::init()
 
 M_EVENT_HANDLER(Test, strandEmpty)
 {
-//	LOG_CRITICAL_PRINT("STRAND Empty");
+	LOG_CRITICAL_PRINT("STRAND Empty");
 	commandStrand.done();
 }
 
 M_EVENT_HANDLER(::Test, strandFixed, fake_t)
 {
+	LOG_CRITICAL_PRINTF("STRAND Fixed %u %u %u", event.f2, event.f3, event.f4);
 	commandStrand.done();
 }
 
@@ -148,10 +149,10 @@ M_TIMER_HANDLER(Test, oscilloscope)
 
 M_EVENT_HANDLER(Test, empty)
 {
-//	LOG_INFO_PRINT("INFO");
-//	LOG_WARNING_PRINT("WARNING");
-//	LOG_ERROR_PRINT("ERROR");
-//	LOG_CRITICAL_PRINT("CRITICAL");
+	LOG_INFO_PRINT("INFO");
+	LOG_WARNING_PRINT("WARNING");
+	LOG_ERROR_PRINT("ERROR");
+	LOG_CRITICAL_PRINT("CRITICAL");
 }
 
 M_EVENT_HANDLER(Test, fixedMany, struct Fake)
@@ -171,7 +172,7 @@ M_EVENT_HANDLER(Test, emptySignalReceived)
 
 M_EVENT_HANDLER(Test, fixedSignalReceived, uint16_t)
 {
-	LOG_INFO_PRINT("Fixed Signal Received");
+	LOG_INFO_PRINTF("Fixed Signal Received %u", event);
 }
 
 U_ACTION_HANDLER(Test, start)

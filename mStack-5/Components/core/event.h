@@ -18,14 +18,14 @@ namespace core
 		}
 		bool post()
 		{
-			return Engine::instance().events().postSlot(index_, (uint32_t)0U);
+			return Engine::instance().events().postSlot(this->index_, (uint32_t)0U);
 		}
 
 	private:
 		void execute(const EventPayload &payload) override
 		{
 			UNUSED(payload);
-			(component_->*handler_)();
+			(this->component_->*handler_)();
 		}
 
 		Component *component_ = nullptr;
@@ -95,12 +95,12 @@ namespace core
 
 		void *allocPayload() override
 		{
-			return pool_.Alloc();
+			return this->pool_.Alloc();
 		}
 
 		bool post(const E &e) override
 		{
-			void *mem = allocPayload();
+			void *mem = this->allocPayload();
 
 			if (mem == nullptr)
 			{
@@ -113,7 +113,7 @@ namespace core
 
 			if (!Engine::instance().events().postSlot(this->index_, mem))
 			{
-				pool_.Free(mem);
+				this->pool_.Free(mem);
 				return false;
 			}
 
@@ -126,7 +126,7 @@ namespace core
 			E *payloadPtr = static_cast<E *>(payload.p);
 			(this->component_->*this->handler_)(*payloadPtr);
 
-			pool_.Free(payloadPtr);
+			this->pool_.Free(payloadPtr);
 		}
 
 	private:

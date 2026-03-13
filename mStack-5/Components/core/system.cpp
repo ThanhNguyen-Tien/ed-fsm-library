@@ -7,7 +7,6 @@
 // ======================
 extern "C"
 {
-
     void SystemClock_Config(void);
 
     void SysTick_Handler(void)

@@ -30,21 +30,11 @@ namespace core
 			return this->evQueue.peakUsed();
 		}
 
-		uint16_t getNumOfByteHeaps() const
-		{
-			return this->numOfByteHeaps_;
-		}
-
-		void addNumOfByteHeap(uint32_t val)
-		{
-			this->numOfByteHeaps_ += val;
-		}
-
 		void resetEventsMeasurements()
 		{
 			for (size_t i = 0; i < EVENT_POOL_SIZE; i++)
 			{
-				Event *ev = events_[i];
+				Event *ev = this->events_[i];
 				if (ev == nullptr)
 					continue;
 
@@ -60,7 +50,7 @@ namespace core
 
 		inline bool next()
 		{
-			EventSlot_t *slot = evQueue.peekTail();
+			EventSlot_t *slot = this->evQueue.peekTail();
 			if (slot == nullptr) // Queue Empty
 			{
 				return false;
@@ -75,9 +65,9 @@ namespace core
 
 			uint32_t event_id = raw_id & ~READY_BIT; // Masking to remove Ready Bit (bit 31)
 
-			if (event_id < poolSize_)
+			if (event_id < this->poolSize_)
 			{
-				Event *e = events_[event_id];
+				Event *e = this->events_[event_id];
 
 				uint32_t exec_start = DWT->CYCCNT;
 				e->latency.value = exec_start - slot->timestamp;
@@ -121,13 +111,13 @@ namespace core
 			}
 
 			__atomic_store_n(&slot->event_id, 0, __ATOMIC_RELEASE); // Clear READY_BIT and ID
-			evQueue.pop();											// Increase Tail to free up a slot in Ring Buffer
+			this->evQueue.pop();											// Increase Tail to free up a slot in Ring Buffer
 			return true;
 		}
 
 		inline bool postSlot(uint8_t index, const EventPayload &payload)
 		{
-			auto *s = evQueue.reserveAtomic(); // Protect by LDREX/STREX
+			auto *s = this->evQueue.reserveAtomic(); // Protect by LDREX/STREX
 			if (s == nullptr)
 			{
 				//				Error_Handler();
@@ -153,18 +143,17 @@ namespace core
 	private:
 		uint8_t registerEvent_(Event *event)
 		{
-			if (poolSize_ >= EVENT_POOL_SIZE)
+			if (this->poolSize_ >= EVENT_POOL_SIZE)
 				Error_Handler();
 
-			events_[poolSize_] = event;
-			return poolSize_++;
+			this->events_[poolSize_] = event;
+			return this->poolSize_++;
 		}
 
 	private:
 		Event *events_[EVENT_POOL_SIZE];
 		alignas(4) EventSlot_t buffer_[EVENT_QUEUE_SIZE];
 		Queue<EventSlot_t> evQueue;
-		uint16_t numOfByteHeaps_ = 0U;
 		uint8_t poolSize_ = 0;
 
 		friend class Event;

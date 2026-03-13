@@ -6,7 +6,7 @@
 /*CONTROLLER*/
 static constexpr int32_t MAX_ONE = 128;
 static constexpr int32_t MAX_TWO = 32768;
-static constexpr uint8_t TIME_PLOT = 5; // ms
+static constexpr uint8_t TIME_PLOT = 2; // ms
 
 /*DRIVER*/
 static constexpr uint16_t TX_BUF_SIZE = 8192;

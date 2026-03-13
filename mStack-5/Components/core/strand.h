@@ -9,7 +9,6 @@
 
 namespace core
 {
-
     class Strand : public Component
     {
     public:
@@ -21,7 +20,7 @@ namespace core
          */
         bool post(EmptyEvent *event, ByteEvent *finished = nullptr)
         {
-            EventSlot_t *slot = queue_.reserve();
+            EventSlot_t *slot = this->queue_.reserve();
             if (slot == nullptr)
             {
                 Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
@@ -34,8 +33,8 @@ namespace core
             slot->event_id = id;
             slot->payload.u = 0;
 
-            queue_.commit();
-            next_();
+            this->queue_.commit();
+            this->next_();
             return true;
         }
 
@@ -45,7 +44,7 @@ namespace core
         template <typename E>
         bool post(FixedEvent<E> *event, const E &e, ByteEvent *finished = nullptr)
         {
-            EventSlot_t *slot = queue_.reserve();
+            EventSlot_t *slot = this->queue_.reserve();
             if (slot == nullptr)
             {
                 Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, event->index_);
@@ -65,7 +64,7 @@ namespace core
             else
             {
                 void *mem = event->allocPayload();
-                if (!mem)
+                if (mem == nullptr)
                 {
                     Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
                     queue_.decreasePeakOne(); // Roll back peak count since allocation failed
@@ -76,41 +75,47 @@ namespace core
             }
 
             slot->event_id = id;
-            queue_.commit();
-            next_();
+            this->queue_.commit();
+            this->next_();
             return true;
         }
 
         /**
          * @brief Post a delay event to the Strand (SPSC).
          */
-        void delay(uint32_t ms)
+        bool delay(uint32_t ms)
         {
-            EventSlot_t *slot = queue_.reserve();
+            EventSlot_t *slot = this->queue_.reserve();
             if (slot == nullptr)
-                return;
+            {
+            	Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, 0xFF); // Use 0xFF to indicate delay event
+				return false;
+			}
+            else
+            {
+                slot->event_id = (DELAY << 16U);
+                slot->payload.u = ms;
 
-            slot->event_id = (DELAY << 16U);
-            slot->payload.u = ms;
-
-            queue_.commit();
-            next_();
+                this->queue_.commit();
+                this->next_();
+                return true;
+            }
         }
 
         void done()
         {
-            __atomic_clear(&busy_, __ATOMIC_RELEASE);
-            next_();
+            __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
+            this->next_();
         }
 
         void done(uint8_t error)
         {
-            __atomic_clear(&busy_, __ATOMIC_RELEASE);
-            if (finished_ != nullptr)
+            __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
+            if (this->finished_ != nullptr)
             {
-                finished_->post(error);
+            	this->finished_->post(error);
             }
-            next_();
+            this->next_();
         }
 
     private:
@@ -131,76 +136,78 @@ namespace core
              * 1. Read current value of 'busy_'.
              * 2. Set 'busy_' to 'true' atomically.
              * 3. Return the PREVIOUS value.
-             * 
-             * If it returns 'true': The Strand is already busy processing an event 
-             * or a trigger is already scheduled. We ABORT here to prevent 
+             *
+             * If it returns 'true': The Strand is already busy processing an event
+             * or a trigger is already scheduled. We ABORT here to prevent
              * redundant triggers.
-             * 
-             * __ATOMIC_ACQUIRE ensures that subsequent reads (like queue_.empty()) 
+             *
+             * __ATOMIC_ACQUIRE ensures that subsequent reads (like queue_.empty())
              * don't happen before we successfully "lock" the latch.
              */
-            if (__atomic_test_and_set(&busy_, __ATOMIC_ACQUIRE))
+            if (__atomic_test_and_set(&this->busy_, __ATOMIC_ACQUIRE))
             {
                 return;
             }
 
-            if (queue_.empty())
+            if (this->queue_.empty())
             {
-                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+                __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
                 return;
             }
 
-            if (!executeEvent_.post())
+            if (!this->executeEvent_.post())
             {
-                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+                __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
             }
         }
 
         void execute_()
         {
-            EventSlot_t *slot = queue_.peekTail();
+            EventSlot_t *slot = this->queue_.peekTail();
             if (slot == nullptr)
             {
-                __atomic_clear(&busy_, __ATOMIC_RELEASE);
+                __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
                 return;
-            }
-
-            uint32_t id = slot->event_id;
-            uint32_t type = (id >> 16U) & 0xFFU;
-
-            if (type == DELAY)
-            {
-                timer_.start(slot->payload.u, 1);
-                finished_ = nullptr;
-                // busy_ remains true, cleared in timeout_ or done()
             }
             else
             {
-                if (type == CALLBACK)
+                uint32_t id = slot->event_id;
+                uint32_t type = (id >> 16U) & 0xFFU;
+
+                if (type == DELAY)
                 {
-                    uint8_t cb_idx = static_cast<uint8_t>((id >> 8U) & 0xFFU);
-                    finished_ = (cb_idx < events_.poolSize_) ? (ByteEvent *)events_.events_[cb_idx] : nullptr;
+                	this->timer_.start(slot->payload.u, 1);
+                	this->finished_ = nullptr;
+                    // busy_ remains true, cleared in timeout_ or done()
                 }
                 else
                 {
-                    finished_ = nullptr;
+                    if (type == CALLBACK)
+                    {
+                        uint8_t cb_idx = static_cast<uint8_t>((id >> 8U) & 0xFFU);
+                        this->finished_ = (cb_idx < this->events_.poolSize_) ? (ByteEvent *)this->events_.events_[cb_idx] : nullptr;
+                    }
+                    else
+                    {
+                    	this->finished_ = nullptr;
+                    }
+
+                    uint8_t ev_idx = static_cast<uint8_t>(id & 0xFFU);
+                    if (ev_idx < this->events_.poolSize_)
+                    {
+                    	this->events_.events_[ev_idx]->execute(slot->payload);
+                    }
+                    // busy_ remains true, cleared by USER calling done()
                 }
 
-                uint8_t ev_idx = static_cast<uint8_t>(id & 0xFFU);
-                if (ev_idx < events_.poolSize_)
-                {
-                    events_.events_[ev_idx]->execute(slot->payload);
-                }
-                // busy_ remains true, cleared by USER calling done()
+                this->queue_.pop();
             }
-
-            queue_.pop();
         }
 
         void timeout_()
         {
-            __atomic_clear(&busy_, __ATOMIC_RELEASE);
-            next_();
+            __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
+            this->next_();
         }
 
     private:

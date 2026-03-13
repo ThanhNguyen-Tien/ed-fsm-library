@@ -7,24 +7,24 @@ using namespace core;
 
 Event::Event()
 {
-	index_ = Engine::instance().events().registerEvent_(this);
+	this->index_ = Engine::instance().events().registerEvent_(this);
 }
 
 Engine::Engine() : Event(0)
 {
-	events_.registerEvent_(this);
+	this->events_.registerEvent_(this);
 }
 
 void Engine::init()
 {
-	pStartTimerEvent_ = new SmallFixedEvent<Timer *>(this,
+	this->pStartTimerEvent_ = new SmallFixedEvent<Timer *>(this,
 													 static_cast<SmallFixedEvent<Timer *>::Handler>(&Engine::startTimer_));
-	pStopTimerEvent_ = new SmallFixedEvent<Timer *>(this,
+	this->pStopTimerEvent_ = new SmallFixedEvent<Timer *>(this,
 													static_cast<SmallFixedEvent<Timer *>::Handler>(&Engine::stopTimer_));
-	pCalculateCpuLoadTimer_ = new Timer(this, static_cast<Timer::Handler>(&Engine::calculateCpuLoadTimerHandler_));
+	this->pCalculateCpuLoadTimer_ = new Timer(this, static_cast<Timer::Handler>(&Engine::calculateCpuLoadTimerHandler_));
 
 	systemInit();
-	pCalculateCpuLoadTimer_->start(1000);
+	this->pCalculateCpuLoadTimer_->start(1000);
 }
 
 void Engine::run()
@@ -32,7 +32,7 @@ void Engine::run()
 	DWT_Init();
 	while (true)
 	{
-		if (events_.next())
+		if (this->events_.next())
 			continue;
 		idle_();
 	}
@@ -40,27 +40,27 @@ void Engine::run()
 
 void Engine::registerTimer_(Timer *const &timer)
 {
-	timer->next_ = timers_;
-	timers_ = timer;
+	timer->next_ = this->timers_;
+	this->timers_ = timer;
 }
 
 void Engine::startTimer_(Timer *const &timer)
 {
 	Timer *prev = nullptr;
-	for (Timer *it = timers_; it != nullptr; it = it->next_)
+	for (Timer *it = this->timers_; it != nullptr; it = it->next_)
 	{
 		if (it == timer)
 		{
 			if (prev == nullptr)
 			{
-				timers_ = it->next_;
+				this->timers_ = it->next_;
 			}
 			else
 			{
 				prev->next_ = it->next_;
 			}
-			timer->next_ = activeTimers_;
-			activeTimers_ = timer;
+			timer->next_ = this->activeTimers_;
+			this->activeTimers_ = timer;
 			break;
 		}
 		else
@@ -69,9 +69,9 @@ void Engine::startTimer_(Timer *const &timer)
 		prev = it;
 	}
 
-	if (nextTick_ > timer->nextTick_)
+	if (this->nextTick_ > timer->nextTick_)
 	{
-		nextTick_ = timer->nextTick_;
+		this->nextTick_ = timer->nextTick_;
 	}
 	else
 	{
@@ -81,20 +81,20 @@ void Engine::startTimer_(Timer *const &timer)
 void Engine::stopTimer_(Timer *const &timer)
 {
 	Timer *prev = nullptr;
-	for (Timer *it = activeTimers_; it != nullptr; it = it->next_)
+	for (Timer *it = this->activeTimers_; it != nullptr; it = it->next_)
 	{
 		if (it == timer)
 		{
 			if (prev == nullptr)
 			{
-				activeTimers_ = it->next_;
+				this->activeTimers_ = it->next_;
 			}
 			else
 			{
 				prev->next_ = it->next_;
 			}
-			timer->next_ = timers_;
-			timers_ = timer;
+			timer->next_ = this->timers_;
+			this->timers_ = timer;
 			break;
 		}
 		prev = it;
@@ -103,8 +103,8 @@ void Engine::stopTimer_(Timer *const &timer)
 
 void Engine::delay(uint32_t t)
 {
-	auto timeout = tickCount_ + t;
-	while (tickCount_ < timeout)
+	auto timeout = this->tickCount_ + t;
+	while (this->tickCount_ < timeout)
 	{
 		NO_OPERATION;
 	}
@@ -115,8 +115,8 @@ void Engine::execute(const EventPayload &payload)
 	UNUSED(payload);
 
 	uint64_t min = LAST_TICK;
-	uint64_t now = tickCount_;
-	Timer *it = activeTimers_;
+	uint64_t now = this->tickCount_;
+	Timer *it = this->activeTimers_;
 	Timer *next;
 	while (it != nullptr)
 	{
@@ -137,17 +137,17 @@ void Engine::execute(const EventPayload &payload)
 		}
 		it = next;
 	}
-	nextTick_ = min;
+	this->nextTick_ = min;
 }
 
 void Engine::calculateCpuLoadTimerHandler_()
 {
 	uint32_t now = DWT->CYCCNT;
-	uint32_t elapsed = now - cpu_stats_.window_start;
+	uint32_t elapsed = now - this->cpu_stats_.window_start;
 
-	cpu_stats_.cpu_load =
-		((float)((elapsed - cpu_stats_.idle_cycles)) / (float)elapsed) * 100;
+	this->cpu_stats_.cpu_load =
+		((float)((elapsed - this->cpu_stats_.idle_cycles)) / (float)elapsed) * 100;
 
-	cpu_stats_.idle_cycles = 0;
-	cpu_stats_.window_start = now;
+	this->cpu_stats_.idle_cycles = 0;
+	this->cpu_stats_.window_start = now;
 }

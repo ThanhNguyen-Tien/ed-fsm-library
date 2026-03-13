@@ -8,7 +8,6 @@
 
 namespace core
 {
-
     template <typename T>
     class Queue
     {
@@ -28,19 +27,21 @@ namespace core
          */
         inline T *reserve()
         {
-            uint32_t h = __atomic_load_n(&head_, __ATOMIC_RELAXED);
-            uint32_t t = __atomic_load_n(&tail_, __ATOMIC_ACQUIRE);
+            uint32_t h = __atomic_load_n(&this->head_, __ATOMIC_RELAXED);
+            uint32_t t = __atomic_load_n(&this->tail_, __ATOMIC_ACQUIRE);
 
-            if ((h - t) >= size_) return nullptr;
+            if ((h - t) >= this->size_)
+                return nullptr;
 
             uint32_t used = h - t;
             // Update peakUsed using Relaxed atomic
-            uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
-            if (used + 1 > currentPeak) {
-                __atomic_store_n(&peakUsed_, used + 1, __ATOMIC_RELAXED);
+            uint32_t currentPeak = __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
+            if (used + 1 > currentPeak)
+            {
+                __atomic_store_n(&this->peakUsed_, used + 1, __ATOMIC_RELAXED);
             }
 
-            return &buf_[h & mask_];
+            return &this->buf_[h & this->mask_];
         }
         /**
          * @brief SPSC Commit (For Strand)
@@ -49,7 +50,7 @@ namespace core
         inline void commit()
         {
             // Ensure payload is written to RAM before updating head
-            __atomic_store_n(&head_, head_ + 1, __ATOMIC_RELEASE);
+            __atomic_store_n(&this->head_, this->head_ + 1, __ATOMIC_RELEASE);
         }
 
         /**
@@ -62,23 +63,24 @@ namespace core
             uint32_t retry_count = 0;
             for (;;)
             {
-                oldH = __LDREXW(&head_);
-                uint32_t currentTail = __atomic_load_n(&tail_, __ATOMIC_ACQUIRE);
+                oldH = __LDREXW(&this->head_);
+                uint32_t currentTail = __atomic_load_n(&this->tail_, __ATOMIC_ACQUIRE);
                 uint32_t used = oldH - currentTail;
 
-                if (used >= size_)
+                if (used >= this->size_)
                 {
                     __CLREX();
                     return nullptr;
                 }
 
-                uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
-                if (used + 1 > currentPeak) {
-                    __atomic_store_n(&peakUsed_, used + 1, __ATOMIC_RELAXED);
+                uint32_t currentPeak = __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
+                if (used + 1 > currentPeak)
+                {
+                    __atomic_store_n(&this->peakUsed_, used + 1, __ATOMIC_RELAXED);
                 }
 
                 newH = oldH + 1;
-                if (__STREXW(newH, &head_) == 0)
+                if (__STREXW(newH, &this->head_) == 0)
                 {
                     break; // Success
                 }
@@ -91,54 +93,59 @@ namespace core
                 Telemetry::log(TelemetryType::QUEUE_CONTENTION, (uint16_t)retry_count);
             }
 
-            return &buf_[oldH & mask_];
+            return &this->buf_[oldH & this->mask_];
         }
 
         inline T *peekTail()
         {
             // Load head with Acquire to see latest updates from Producer
-            uint32_t h = __atomic_load_n(&head_, __ATOMIC_ACQUIRE);
-            if (h == tail_)
+            uint32_t h = __atomic_load_n(&this->head_, __ATOMIC_ACQUIRE);
+            if (h == this->tail_)
                 return nullptr;
-            return &buf_[tail_ & mask_];
+            return &this->buf_[this->tail_ & this->mask_];
         }
 
         inline void pop()
         {
             // Ensure Consumer finished reading before releasing slot
-            __atomic_store_n(&tail_, tail_ + 1, __ATOMIC_RELEASE);
+            __atomic_store_n(&this->tail_, this->tail_ + 1, __ATOMIC_RELEASE);
         }
 
-        inline bool empty() const { 
-            return __atomic_load_n(&head_, __ATOMIC_RELAXED) == __atomic_load_n(&tail_, __ATOMIC_RELAXED); 
+        inline bool empty() const
+        {
+            return __atomic_load_n(&this->head_, __ATOMIC_RELAXED) == __atomic_load_n(&this->tail_, __ATOMIC_RELAXED);
         }
 
-        inline uint32_t used() const { 
-            return (__atomic_load_n(&head_, __ATOMIC_RELAXED) - __atomic_load_n(&tail_, __ATOMIC_RELAXED)); 
+        inline uint32_t used() const
+        {
+            return (__atomic_load_n(&this->head_, __ATOMIC_RELAXED) - __atomic_load_n(&this->tail_, __ATOMIC_RELAXED));
         }
 
-        inline uint32_t peakUsed() const { 
-            return __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED); 
+        inline uint32_t peakUsed() const
+        {
+            return __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
         }
 
-        inline void reset() {
-            __atomic_store_n(&head_, 0, __ATOMIC_RELAXED);
-            __atomic_store_n(&tail_, 0, __ATOMIC_RELAXED);
+        inline void reset()
+        {
+            __atomic_store_n(&this->head_, 0, __ATOMIC_RELAXED);
+            __atomic_store_n(&this->tail_, 0, __ATOMIC_RELAXED);
         }
 
-        inline void resetPeak() {
-            __atomic_store_n(&peakUsed_, 0, __ATOMIC_RELAXED);
+        inline void resetPeak()
+        {
+            __atomic_store_n(&this->peakUsed_, 0, __ATOMIC_RELAXED);
         }
 
-        inline uint32_t getHead() const { return __atomic_load_n(&head_, __ATOMIC_RELAXED); }
-        inline uint32_t getTail() const { return __atomic_load_n(&tail_, __ATOMIC_RELAXED); }
+        inline uint32_t getHead() const { return __atomic_load_n(&this->head_, __ATOMIC_RELAXED); }
+        inline uint32_t getTail() const { return __atomic_load_n(&this->tail_, __ATOMIC_RELAXED); }
 
         inline void decreasePeakOne()
         {
-            uint32_t currentPeak = __atomic_load_n(&peakUsed_, __ATOMIC_RELAXED);
+            uint32_t currentPeak = __atomic_load_n(&this->peakUsed_, __ATOMIC_RELAXED);
             if (currentPeak > 0)
             {
-                __atomic_store_n(&peakUsed_, currentPeak - 1, __ATOMIC_RELAXED);
+                __atomic_store_n(&this->peakUsed_, currentPeak - 1, __ATOMIC_RELAXED);
             }
         }
 
@@ -148,7 +155,7 @@ namespace core
         // This is extremely important when we later run Core 0 post and Core 1 execute.
         alignas(32) uint32_t head_ = 0;
         alignas(32) uint32_t tail_ = 0;
-        uint32_t peakUsed_ = 0; 
+        uint32_t peakUsed_ = 0;
         const uint32_t size_;
         const uint32_t mask_;
     };
