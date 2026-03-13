@@ -1,355 +1,425 @@
-# Event-Driven Stack & FSM Framework
+# Embedded Event Framework -- Detailed README
 
-## 1. Design Philosophy
+This document describes the **internal design and usage rules** of the
+Embedded Event Framework.
 
-This framework is designed for:
+The goal of this framework is to provide a **deterministic, event‑driven
+execution environment** for MCU firmware without requiring an RTOS.
 
-- Deterministic real-time behavior
-- Zero dynamic memory allocation
-- Strict ownership model
-- Constant-time ISR operations
-- Clear separation of responsibilities
-- Cooperative scheduling (non-preemptive)
+This file is intended for developers working **inside the framework or
+building components on top of it**.
 
-This is **NOT an RTOS**.  
-This is a minimal message-driven execution engine for MCU systems.
+------------------------------------------------------------------------
 
----
+# 1. Design Philosophy
 
-## 2. System Architecture Overview
-```yaml
-+--------------------------------------------------+
-| Application Layer |
-| (FSMs / Event Handlers) |
-+--------------------------+-----------------------+
-                           |
-                           v
-+--------------------------------------------------+
-| Engine Core |
-| - Event Dispatch |
-| - Main Loop (Cooperative) |
-+--------------------------+-----------------------+
-                           |
-                           v
-+--------------------------------------------------+
-| EventQueue |
-| Fixed Slot (2 x 32-bit words) |
-+--------------------------+-----------------------+
-                           |
-                           v
-+--------------------------------------------------+
-| MemoryPool |
-| (Used only for BigFixedEvent) |
-+--------------------------------------------------+
-```
+The framework is built around several strict principles:
 
----
+-   Deterministic real‑time behavior
+-   No dynamic heap allocation
+-   Event‑driven architecture
+-   Minimal ISR work
+-   Single execution context for logic
+-   Lock‑free communication boundary
+-   Clear ownership rules
 
-## 3. Execution Model (Cooperative)
+This framework is **NOT an RTOS**.
 
-The entire system runs in a **single main loop**:
+It is a **message‑driven cooperative execution engine** designed
+specifically for MCU systems.
 
-```cpp
-while (true)
-{
-    if (eventQueue.not_empty())
+Key idea:
+
+> All application logic runs inside a single Engine event loop.
+
+Concurrency only exists at the **event injection boundary**.
+
+------------------------------------------------------------------------
+
+# 2. High Level Architecture
+
+    ISR / Producers
+          │
+          ▼
+    Lock‑Free EventQueue (MPSC)
+          │
+          ▼
+    Engine Main Loop
+          │
+          ├── Event Dispatch
+          ├── Timer Scheduler
+          ├── Machine (State Machines)
+          ├── Strand (Serialized Execution)
+          └── Signal System
+
+Important rule:
+
+**ISR never executes application logic. ISR only posts events.**
+
+All logic runs inside the Engine loop.
+
+------------------------------------------------------------------------
+
+# 3. Execution Model
+
+The system uses **cooperative scheduling**.
+
+Main loop:
+
+    while (true)
     {
-        pop_event();
-        dispatch();
+        if (events.next())
+            continue;
+
+        idle();   // WFI
     }
-    else
-    {
-        WAIT_FOR_INTERRUPT;
-    }
-}
-```
-- No preemption
 
-- No context switching
+Properties:
 
-- No scheduler
+-   No preemption
+-   No context switching
+-   No task scheduler
+-   No time slicing
 
-- No time slicing
+Handlers must:
 
-- Handlers must: 
-    - Execute fast
-    - Never block
-    - Never spin-wait
+-   Execute quickly
+-   Never block
+-   Never busy‑wait
+-   Avoid long computations
 
-All concurrency comes from posting events.
+If long processing is needed, split work across multiple events.
 
----
+------------------------------------------------------------------------
 
-## 4. Event Sources
-Events may originate from:
+# 4. Event System
 
-- External ISR: UART, SPI, I2C, EXTI
-- Internal ISR: TIMER, ADC, DMA
-- Main Loop / Other Handlers: Event chaining, FSM transitions, Deferred processing
+Events are the **primary communication mechanism** in the framework.
 
-All sources converge into the same EventQueue.
+Components communicate by **posting events instead of calling functions
+directly**.
 
----
+Benefits:
 
-## 5. Event Type System
-Events are classified along two axes:
-- Presence of data
-- Data size
+-   Decoupled components
+-   Deterministic execution order
+-   Safe ISR communication
+-   Easy debugging and tracing
 
----
+Every event is registered automatically with the Engine during
+construction.
 
-### 5.1 Event Classification Diagram
-```pgsql
-                         +----------------+
-                         |     Event      |
-                         +----------------+
-                                 |
-                 ---------------------------------
-                 |                               |
-         +---------------+               +----------------+
-         |  EmptyEvent   |               |   FixedEvent   |
-         |  (no data)    |               |     (data)     |
-         +---------------+               +----------------+
-                                                 |
-                                  --------------------------------
-                                  |                              |
-                         +------------------+           +------------------+
-                         | SmallFixedEvent  |           |  BigFixedEvent   |
-                         | sizeof(data)<=4  |           | sizeof(data)>4   |
-                         +------------------+           +------------------+
-```
----
+Event posting pushes a slot into the EventQueue.
 
-### 5.2 EmptyEvent
-- Contains only event_id
-- Payload = nullptr
-- Fastest possible event
+------------------------------------------------------------------------
+
+# 5. Event Classification
+
+Events are categorized based on payload size.
+
+                         Event
+                           │
+               ┌───────────┴───────────┐
+               │                       │
+          EmptyEvent              FixedEvent
+          (no data)                 (data)
+                                       │
+                           ┌───────────┴───────────┐
+                           │                       │
+                    SmallFixedEvent         BigFixedEvent
+                     sizeof(data)<=4        sizeof(data)>4
+
+------------------------------------------------------------------------
+
+## 5.1 EmptyEvent
+
+Contains only an event ID.
 
 Used for:
-- State triggers
-- Simple notifications
-- Software signals
 
----
+-   Simple notifications
+-   State triggers
+-   Software signals
 
-### 5.3 SmallFixedEvent
+Fastest possible event type.
+
+------------------------------------------------------------------------
+
+## 5.2 SmallFixedEvent
+
 Condition:
-```csharp
-sizeof(data) <= 4 bytes
-```
+
+    sizeof(payload) <= 4 bytes
+
 Mechanism:
-- Data copied directly into 32-bit payload
-- No memory allocation
-- No indirection
+
+-   Data copied directly into queue slot
+-   No allocation
+-   No pointer indirection
 
 Advantages:
-- Fully deterministic
-- Extremely fast
-- Ideal for ISR usage
 
----
+-   Deterministic
+-   Extremely fast
+-   Safe to post from ISR
 
-### 5.4 BigFixedEvent
+------------------------------------------------------------------------
+
+## 5.3 BigFixedEvent
+
 Condition:
-```csharp
-sizeof(data) > 4 bytes
-```
+
+    sizeof(payload) > 4 bytes
+
 Mechanism:
-- Request slot from MemoryPool
-- Copy data into allocated slot
-- Store pointer in 32-bit payload
-- Push to EventQueue
 
-Engine will:
-- Extract pointer
-- Call handler
-- Free memory after execution
+1.  Allocate memory from MemPool
+2.  Copy payload into allocated block
+3.  Store pointer in queue slot
+4.  Push event to EventQueue
 
-Important:
-The EventQueue still processes only:
-```cpp
-(uint32_t id, uint32_t payload)
-```
-So queue operations remain constant-time.
+When Engine processes the event:
 
----
+1.  Pointer extracted
+2.  Handler executed
+3.  Memory returned to pool
 
-## 6. EventQueue Design (Fixed Slot – 2 Words)
+Queue structure remains constant size.
+
+------------------------------------------------------------------------
+
+# 6. EventQueue Design
+
+The EventQueue is the **only lock‑free structure in the framework**.
+
+Queue model:
+
+**MPSC -- Multi Producer Single Consumer**
+
+Producers:
+
+-   ISR
+-   Application code
+-   Framework modules
+
+Consumer:
+
+-   Engine main loop
+
 Each slot:
-```cpp
-struct EventSlot
-{
-    uint32_t id;
-    uint32_t payload;
-};
-```
+
+    struct EventSlot
+    {
+        uint32_t event_id;
+        uint32_t payload;
+        uint32_t timestamp;
+    };
+
 Properties:
-- 4-byte aligned
-- Single atomic write per field
-- Cache-friendly
-- O(1) push
-- O(1) pop
 
-Even BigFixedEvent does NOT increase queue cost.
+-   Fixed slot size
+-   O(1) push
+-   O(1) pop
+-   ISR safe
+-   Lock‑free producer operations
 
----
+This queue forms the **synchronization boundary** between concurrent
+producers and the single‑threaded runtime.
 
-## 7. Ownership Model (Critical Design Principle)
-This is the most important concept of the system.
+------------------------------------------------------------------------
 
----
+# 7. MemoryPool (MemPool)
 
-## 7.1 Ownership Lifecycle
+Dynamic heap allocation is not used in the framework.
 
-| Phase                      | Owner  |
-|----------------------------|--------|
-| Before `post()`            | Caller |
-| After successful `post()`  | Engine |
-| During handler execution   | Engine |
-| After handler completes    | Engine (frees memory if BigFixedEvent) |
+Instead a **fixed‑size memory pool allocator** is provided.
 
----
+Characteristics:
 
-### 7.2 Ownership Flow (BigFixedEvent)
-```yaml
-Caller
-   |
-   |  alloc()
-   v
-MemoryPool
-   |
-   |  copy data
-   v
-EventQueue (payload = pointer)
-   |
-   v
-Engine pop
-   |
-   v
-Handler executes
-   |
-   v
-Engine free()
-```
+-   Lock‑free free list
+-   Constant allocation time
+-   No fragmentation
+-   Deterministic memory usage
+
+Used by:
+
+-   BigFixedEvent
+-   SignalMany subscribers
+-   Other optional internal allocations
+
+------------------------------------------------------------------------
+
+# 8. State Machine System (Machine)
+
+The framework provides a **table‑driven finite state machine base
+class**.
+
+Features:
+
+-   Explicit state transition tables
+-   ENTER / EXIT handlers
+-   Optional timeout events
+-   Payload support
+
+Typical event delivery:
+
+    SM_POST()
+
+This schedules the event through the Engine loop.
+
+`SM_EXECUTE()` exists for rare situations requiring immediate execution
+and should be used with caution.
+
+------------------------------------------------------------------------
+
+# 9. Strand
+
+A **Strand** ensures serialized execution of tasks.
+
+It guarantees:
+
+-   Events execute **one at a time**
+-   Execution order is preserved
+-   No concurrent access to shared resources
+
+Use Strand when multiple producers need to interact with the same
+component safely.
+
+------------------------------------------------------------------------
+
+# 10. Signal System
+
+Signals implement a lightweight **observer pattern**.
+
+Types:
+
+SignalOne -- single subscriber
+
+SignalMany -- multiple subscribers
+
+When a signal is emitted, events are posted to the subscribers.
+
+Execution still occurs inside the Engine loop.
+
+------------------------------------------------------------------------
+
+# 11. Timer System
+
+Timers provide delayed or periodic callbacks.
+
+Features:
+
+-   Millisecond resolution
+-   Periodic or one‑shot
+-   Integrated with Engine scheduler
+
+Timer callbacks run as part of the event system.
+
+------------------------------------------------------------------------
+
+# 12. Concurrency Model
+
+The framework enforces a strict concurrency boundary.
+
+  Context       Allowed Actions
+  ------------- -----------------
+  ISR           Post events
+  Engine loop   Execute logic
+  Components    Post events
+
 Key rule:
 
-> Once post() returns successfully, caller must NEVER touch the data again.
+Application logic must run only inside the Engine loop.
 
-This eliminates:
-- Double free
-- Use-after-free
-- Memory corruption
-- Ownership ambiguity
+This eliminates most race conditions.
 
----
+------------------------------------------------------------------------
 
-## 8. Critical Section Strategy (BASEPRI)
-The system is cooperative, but ISR can interrupt main loop.
-We must protect queue slot modification.
-The framework uses:
-```nginx
-BASEPRI masking
-```
-Instead of:
-- Global interrupt disable (PRIMASK)
-- Full critical lock
+# 13. Ownership Model
 
----
+Ownership rules are critical for system safety.
 
-### 8.1 Why BASEPRI?
-BASEPRI allows:
-- Blocking lower-priority interrupts
-- Allowing higher-priority interrupts to still run
+  Phase                      Owner
+  -------------------------- ----------------------------------------
+  Before post()              Caller
+  After successful post()    Engine
+  During handler execution   Engine
+  After handler completes    Engine frees memory (if BigFixedEvent)
 
-This ensures:
-- Deterministic latency
-- Fine-grained interrupt control
-- Better real-time behavior
+Rule:
 
----
+Once `post()` returns successfully, the caller **must not access the
+payload again**.
 
-### 8.2 Critical Section Scope
-Critical section is minimal:
-- Only protect:
-    - Head index update
-    - Tail index update
-    - Slot write
+------------------------------------------------------------------------
 
-Example conceptual flow:
-```pgsql
-Enter Critical Section
-    write slot
-    update head
-Exit Critical Section
-```
-Critical section duration is extremely short.
+# 14. Real‑Time Characteristics
 
----
+Deterministic behavior:
 
-## 9. Real-Time Characteristics
-### Deterministic Behavior
-- No malloc
-- No heap fragmentation
-- Bounded memory usage
-- Constant-time queue ops
+-   No malloc
+-   Fixed memory usage
+-   Constant‑time queue operations
 
----
+ISR safety:
 
-### ISR Safety
-- SmallFixedEvent → direct payload copy
-- BigFixedEvent → allocation outside queue
-- Queue always pushes 2 words only
+-   Minimal ISR work
+-   Only event posting
 
----
+Cooperative execution:
 
-### Cooperative Execution
-- No preemption inside handlers
-- Predictable execution order
-- Fully controlled scheduling
+-   Predictable execution order
 
----
+------------------------------------------------------------------------
 
-## 10. Memory Model Summary
-Memory usage is fully static:
-- EventQueue: fixed array
-- MemoryPool: fixed block pool, allocation occurs only once at startup.
-- No runtime growth
+# 15. Typical Event Flow
 
-Worst-case RAM usage is known at compile time.
+    Interrupt / Component
+            │
+            ▼
+         post()
+            │
+            ▼
+       EventQueue
+            │
+            ▼
+      Engine pops event
+            │
+            ▼
+     Handler executes
+            │
+            ▼
+     Optional new events
 
----
+------------------------------------------------------------------------
 
-## 11. Conceptual Summary
-This framework behaves like a:
-> Mini message-driven cooperative kernel for microcontrollers.
-```csharp
+# 16. Framework Strengths
+
+-   Deterministic execution model
+-   Minimal ISR latency
+-   No runtime heap allocation
+-   Clear ownership rules
+-   Simple concurrency model
+-   Easy debugging through event tracing
+-   Portable across Cortex‑M MCUs
+
+------------------------------------------------------------------------
+
+# 17. Conceptual Summary
+
+The framework behaves like a **message‑driven cooperative kernel** for
+embedded systems.
+
     Interrupts
-        ↓
-    post()
-        ↓
-    EventQueue
-        ↓
-    Engine (main loop)
-        ↓
-    FSM / Handlers
-        ↓
-    State Transitions
-```
-All behavior is:
-- Explicit
-- Deterministic
-- Ownership-safe
-- RT-friendly
+         ↓
+       post()
+         ↓
+     EventQueue
+         ↓
+       Engine
+         ↓
+     FSM / Handlers
+         ↓
+     State changes
 
----
-
-## 12. Design Strengths
-- Strict ownership model
-- Clear event hierarchy
-- Separation of memory and scheduling
-- Minimal ISR latency
-- Zero dynamic allocation (at runtime)
-- Portable across Cortex-M devices
-- Easy to reason about
-
----
+Everything in the system is driven by **events**.
