@@ -27,26 +27,26 @@ void Timer::start(uint32_t interval, int32_t loop)
 
 void Timer::stop()
 {
-	loop_ = 0;
+	this->loop_ = 0;
 	Engine::instance().pStopTimerEvent_->post(this);
 	this->nextTick_ = LAST_TICK - 1;
 }
 
 void Timer::run_()
 {
-	if (--loop_ == 0)
+	if (--this->loop_ == 0)
 	{
 		Engine::instance().stopTimer_(this);
 		this->nextTick_ = LAST_TICK - 1;
 	}
 	else
 	{
-		nextTick_ += interval_;
-		if (loop_ < 0)
+		this->nextTick_ += this->interval_;
+		if (this->loop_ < 0)
 		{
-			loop_ = -1;
+			this->loop_ = -1;
 		}
 	}
 
-	(component_->*handler_)();
+	(this->component_->*this->handler_)();
 }

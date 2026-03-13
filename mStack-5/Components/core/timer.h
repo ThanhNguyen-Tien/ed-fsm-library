@@ -14,7 +14,7 @@ namespace core
 		void stop();
 		inline bool isRunning()
 		{
-			return (loop_ != 0);
+			return (this->loop_ != 0);
 		}
 
 	private:

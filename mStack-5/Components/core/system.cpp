@@ -20,6 +20,8 @@ extern "C"
     {
         HAL_Init();
         SystemClock_Config();
+        //Disable SysTick interrupt for temporary
+        LL_SYSTICK_DisableIT();
         MX_GPIO_Init();
     }
 
