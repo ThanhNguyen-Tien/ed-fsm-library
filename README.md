@@ -8,8 +8,8 @@ memory allocation.
 
 The architecture follows a **single consumer event loop** model:
 
--   Multiple producers (main code, ISR, components) can post events.
--   A single consumer (Engine main loop) executes all logic.
+-   Multiple producers (ISRs, Event Handlers - main loop) can post events.
+-   A single consumer (Engine Dispatcher - main loop) executes all logic.
 
 This approach eliminates most race conditions and simplifies reasoning
 about system behavior.
@@ -52,7 +52,7 @@ All system behavior is executed inside the Engine main loop.
 
 The **Engine** is the runtime scheduler of the framework.
    ![image](https://github.com/user-attachments/assets/89739d51-996a-4b5d-98b2-9eb4bca0734f)
-   
+
 Responsibilities:
 
 -   Executes events from the EventQueue
