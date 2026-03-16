@@ -46,7 +46,7 @@ namespace core
 		{
 			if (++this->tickCount_ >= this->nextTick_)
 			{
-				this->events_.post(index_);
+				this->events_.postSlot(index_, (uint32_t)0U);
 			}
 		}
 

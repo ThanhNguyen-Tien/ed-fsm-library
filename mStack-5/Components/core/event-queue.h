@@ -133,13 +133,6 @@ namespace core
 			return true;
 		}
 
-		inline void post(uint8_t index)
-		{
-			EventPayload p;
-			p.u = 0;
-			postSlot(index, p);
-		}
-
 	private:
 		uint8_t registerEvent_(Event *event)
 		{
