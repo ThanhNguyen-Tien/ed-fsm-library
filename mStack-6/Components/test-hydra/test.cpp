@@ -97,18 +97,20 @@ void Test::init()
 
 M_EVENT_HANDLER(Test, strandEmpty)
 {
-	LOG_CRITICAL_PRINT("STRAND Empty");
+	LOG_INFO_PRINT("STRAND Empty");
 	commandStrand.done();
 }
 
 M_EVENT_HANDLER(::Test, strandFixed, fake_t)
 {
-	LOG_CRITICAL_PRINTF("STRAND Fixed %u %u %u", event.f2, event.f3, event.f4);
+	LOG_INFO_PRINTF("STRAND Fixed %u %u %u", event.f2, event.f3, event.f4);
 	commandStrand.done();
 }
 
 M_TIMER_HANDLER(Test, testLog)
 {
+	fixedManyEvent.setPriority(2);
+	emptyEvent.setPriority(fake_.f4 % 3);
 	emptyEvent.post();
 	fixedManyEvent.post(fake_);
 	emptySignal.emit();
@@ -118,7 +120,7 @@ M_TIMER_HANDLER(Test, testLog)
 	fake_.f1 += 1.0;
 	fake_.f2 += 10;
 	fake_.f3 += 10;
-	fake_.f4 += 10;
+	fake_.f4 += 1;
 	commandStrand.post(&strandEmptyEvent);
 	commandStrand.delay(500);
 	commandStrand.post<fake_t>(&strandFixedEvent, fake_);
@@ -149,20 +151,21 @@ M_TIMER_HANDLER(Test, oscilloscope)
 
 M_EVENT_HANDLER(Test, empty)
 {
-	LOG_INFO_PRINT("INFO");
-	LOG_WARNING_PRINT("WARNING");
-	LOG_ERROR_PRINT("ERROR");
-	LOG_CRITICAL_PRINT("CRITICAL");
+//	LOG_INFO_PRINT("INFO");
+//	LOG_WARNING_PRINT("WARNING");
+//	LOG_ERROR_PRINT("ERROR");
+//	LOG_CRITICAL_PRINT("CRITICAL");
+	LOG_CRITICAL_PRINT("Empty Event");
 }
 
 M_EVENT_HANDLER(Test, fixedMany, struct Fake)
 {
-	LOG_DEBUG_PRINTF("FixedMany %u %u %u", event.f2, event.f3, (uint32_t)(core::Engine::instance().getCpuLoad()));
+	LOG_CRITICAL_PRINTF("FixedMany %u %u %u", event.f2, event.f3, (uint32_t)(core::Engine::instance().getCpuLoad()));
 }
 
 M_EVENT_HANDLER(::Test, fixedMany_1, struct Fake)
 {
-	LOG_DEBUG_PRINTF("FixedMany_1 %u %u %u", event.f2, event.f3, event.f4);
+//	LOG_DEBUG_PRINTF("FixedMany_1 %u %u %u", event.f2, event.f3, event.f4);
 }
 
 M_EVENT_HANDLER(Test, emptySignalReceived)

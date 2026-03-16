@@ -49,13 +49,19 @@ namespace core
 			0U			// value
 		};
 
-		Event();
+		void setPriority(uint8_t p) { priority_ = p & 0x07; }
+		uint8_t getPriority() const { return priority_; }
+
+		Event(uint8_t p = 0);
 		virtual ~Event() {}
 
 	protected:
 		virtual void execute(const EventPayload &payload) = 0;
-		Event(uint8_t index) : index_(index) {}
+		Event(uint8_t index, uint8_t p = 0)
+			: index_(index), priority_(p & 0x07) {}
 		uint8_t index_;
+		uint8_t priority_;
+		template <uint8_t>
 		friend class EventQueue;
 		friend class Strand;
 	};

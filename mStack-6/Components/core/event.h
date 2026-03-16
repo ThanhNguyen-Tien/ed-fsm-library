@@ -18,7 +18,7 @@ namespace core
 		}
 		bool post()
 		{
-			return Engine::instance().events().postSlot(this->index_, (uint32_t)0U);
+			return Engine::instance().events().post(this->index_, (uint32_t)0U);
 		}
 
 	private:
@@ -66,7 +66,7 @@ namespace core
 		{
 			EventPayload p{};
 			memcpy(&p.u, &e, sizeof(E));
-			return Engine::instance().events().postSlot(this->index_, p);
+			return Engine::instance().events().post(this->index_, p);
 		}
 
 	private:
@@ -104,14 +104,14 @@ namespace core
 
 			if (mem == nullptr)
 			{
-				//				Error_Handler();
+				// Error_Handler();
 				Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, this->index_);
 				return false;
 			}
 
 			memcpy(mem, &e, sizeof(E));
 
-			if (!Engine::instance().events().postSlot(this->index_, mem))
+			if (!Engine::instance().events().post(this->index_, mem))
 			{
 				this->pool_.Free(mem);
 				return false;

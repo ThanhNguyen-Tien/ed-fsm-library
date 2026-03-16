@@ -12,6 +12,9 @@ namespace core
     class Queue
     {
     public:
+        // Default constructor
+        Queue() : buf_(nullptr), head_(0), tail_(0), peakUsed_(0), size_(0), mask_(0) {}
+
         Queue(T *buf, uint16_t size)
             : buf_(buf),
               size_(size),
@@ -19,6 +22,15 @@ namespace core
         {
             // enforce power-of-2 runtime:
             assert((size & (size - 1)) == 0); // size must be power of 2
+        }
+
+        void init(T *buf, uint16_t size)
+        {
+            this->buf_ = buf;
+            this->size_ = size;
+            this->mask_ = size - 1;
+            this->reset();
+            assert((size & (size - 1)) == 0);
         }
 
         /**
@@ -150,14 +162,14 @@ namespace core
         }
 
     private:
-        T *const buf_;
+        T *buf_;
         // Move the head_ and tail_ values ​​far apart so they don't share a single cache line (32 bytes/ M7, R5)
         // This is extremely important when we later run Core 0 post and Core 1 execute.
         alignas(32) uint32_t head_ = 0;
         alignas(32) uint32_t tail_ = 0;
         uint32_t peakUsed_ = 0;
-        const uint32_t size_;
-        const uint32_t mask_;
+        uint32_t size_;
+        uint32_t mask_;
     };
 }
 

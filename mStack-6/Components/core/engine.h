@@ -46,7 +46,7 @@ namespace core
 		{
 			if (++this->tickCount_ >= this->nextTick_)
 			{
-				this->events_.postSlot(index_, (uint32_t)0U);
+				this->events_.post(index_, (uint32_t)0U);
 			}
 		}
 
@@ -54,15 +54,19 @@ namespace core
 		{
 			return this->tickCount_;
 		}
+
 		void delay(uint32_t t); // t in ms, WARNING: blocking, use only in limited contexts
-		EventQueue &events()
+
+		EventQueue<CORE_NUM_PRIORITIES> &events()
 		{
 			return this->events_;
 		}
+
 		float getCpuLoad()
 		{
 			return this->cpu_stats_.cpu_load;
 		}
+
 		uint16_t checkNumOfEvent()
 		{
 			return this->events_.poolSize_;
@@ -105,7 +109,7 @@ namespace core
 		Timer *timers_ = nullptr;
 		Timer *activeTimers_ = nullptr;
 
-		EventQueue events_;
+		EventQueue<CORE_NUM_PRIORITIES> events_;
 		volatile uint64_t tickCount_ = 0;
 		uint64_t nextTick_ = LAST_TICK;
 

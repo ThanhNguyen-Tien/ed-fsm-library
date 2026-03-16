@@ -84,7 +84,7 @@ private:
 						.f1 = 200.123f,
 						.f2 = 300,
 						.f3 = 400,
-						.f4 = 10};
+						.f4 = 0};
 	uint32_t strandCount_;
 
 	uint32_t angle_ = 0;

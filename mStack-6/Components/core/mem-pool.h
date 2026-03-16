@@ -1,10 +1,3 @@
-/*
- * mem-pool.h
- *
- *  Created on: Jul 25, 2023
- *      Author: MSI
- */
-
 #ifndef CORE_MEM_POOL_H_
 #define CORE_MEM_POOL_H_
 

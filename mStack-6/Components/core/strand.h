@@ -27,10 +27,10 @@ namespace core
                 return false;
             }
 
-            uint32_t id = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
-            id |= (event->index_ & 0xFFU);
+            uint32_t header_ = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
+            header_ |= (event->index_ & 0xFFU);
 
-            slot->event_id = id;
+            slot->header = header_;
             slot->payload.u = 0;
 
             this->queue_.commit();
@@ -51,9 +51,9 @@ namespace core
                 return false;
             }
 
-            uint32_t id = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
+            uint32_t header_ = (finished != nullptr) ? (CALLBACK << 16U) | (static_cast<uint32_t>(finished->index_) << 8U) : (VOID << 16U);
 
-            id |= (event->index_ & 0xFFU);
+            header_ |= (event->index_ & 0xFFU);
 
             // Handle Small vs Big FixedEvent payload
             if (sizeof(E) <= sizeof(uint32_t))
@@ -68,13 +68,13 @@ namespace core
                 {
                     Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, event->index_);
                     queue_.decreasePeakOne(); // Roll back peak count since allocation failed
-                    return false;            // Note: reserve was done, but we don't commit, head doesn't move
+                    return false;             // Note: reserve was done, but we don't commit, head doesn't move
                 }
                 memcpy(mem, &e, sizeof(E));
                 slot->payload.p = mem;
             }
 
-            slot->event_id = id;
+            slot->header = header_;
             this->queue_.commit();
             this->next_();
             return true;
@@ -88,12 +88,12 @@ namespace core
             EventSlot_t *slot = this->queue_.reserve();
             if (slot == nullptr)
             {
-            	Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, 0xFF); // Use 0xFF to indicate delay event
-				return false;
-			}
+                Telemetry::log(TelemetryType::STRAND_QUEUE_FULL, 0xFF); // Use 0xFF to indicate delay event
+                return false;
+            }
             else
             {
-                slot->event_id = (DELAY << 16U);
+                slot->header = (DELAY << 16U);
                 slot->payload.u = ms;
 
                 this->queue_.commit();
@@ -113,7 +113,7 @@ namespace core
             __atomic_clear(&this->busy_, __ATOMIC_RELEASE);
             if (this->finished_ != nullptr)
             {
-            	this->finished_->post(error);
+                this->finished_->post(error);
             }
             this->next_();
         }
@@ -171,31 +171,31 @@ namespace core
             }
             else
             {
-                uint32_t id = slot->event_id;
-                uint32_t type = (id >> 16U) & 0xFFU;
+                uint32_t header_ = slot->header;
+                uint32_t type = (header_ >> 16U) & 0xFFU;
 
                 if (type == DELAY)
                 {
-                	this->timer_.start(slot->payload.u, 1);
-                	this->finished_ = nullptr;
+                    this->timer_.start(slot->payload.u, 1);
+                    this->finished_ = nullptr;
                     // busy_ remains true, cleared in timeout_ or done()
                 }
                 else
                 {
                     if (type == CALLBACK)
                     {
-                        uint8_t cb_idx = static_cast<uint8_t>((id >> 8U) & 0xFFU);
+                        uint8_t cb_idx = static_cast<uint8_t>((header_ >> 8U) & 0xFFU);
                         this->finished_ = (cb_idx < this->events_.poolSize_) ? (ByteEvent *)this->events_.events_[cb_idx] : nullptr;
                     }
                     else
                     {
-                    	this->finished_ = nullptr;
+                        this->finished_ = nullptr;
                     }
 
-                    uint8_t ev_idx = static_cast<uint8_t>(id & 0xFFU);
+                    uint8_t ev_idx = static_cast<uint8_t>(header_ & 0xFFU);
                     if (ev_idx < this->events_.poolSize_)
                     {
-                    	this->events_.events_[ev_idx]->execute(slot->payload);
+                        this->events_.events_[ev_idx]->execute(slot->payload);
                     }
                     // busy_ remains true, cleared by USER calling done()
                 }
@@ -213,7 +213,7 @@ namespace core
     private:
         ByteEvent *finished_ = nullptr;
         EmptyEvent executeEvent_ = EmptyEvent(this, static_cast<EmptyEvent::Handler>(&Strand::execute_));
-        EventQueue &events_ = Engine::instance().events();
+        EventQueue<CORE_NUM_PRIORITIES> &events_ = Engine::instance().events();
         Timer timer_ = Timer(this, static_cast<Timer::Handler>(&Strand::timeout_));
         Queue<EventSlot_t> &queue_;
         bool busy_ = false;

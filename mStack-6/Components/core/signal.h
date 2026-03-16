@@ -28,12 +28,12 @@ namespace core
         {
             if (this->event_ != nullptr)
             {
-				this->event_->post();
+                this->event_->post();
             }
             else
-			{
-				// Optional: Log warning about emitting with no connection
-			}
+            {
+                // Optional: Log warning about emitting with no connection
+            }
         }
 
     private:
@@ -50,12 +50,12 @@ namespace core
         {
             if (this->event_ != nullptr)
             {
-				this->event_->post(e);
+                this->event_->post(e);
             }
             else
-			{
-            	// Optional: Log warning about emitting with no connection
-			}
+            {
+                // Optional: Log warning about emitting with no connection
+            }
         }
 
     private:
@@ -77,30 +77,30 @@ namespace core
             {
                 if (it->event == static_cast<void *>(event))
                 {
-                	return true; // Already connected, no duplicates allowed
+                    return true; // Already connected, no duplicates allowed
                 }
                 else
                 {
-                	it = it->next;
+                    it = it->next;
                 }
             }
 
             void *mem = this->pool_.Alloc();
             if (mem == nullptr)
             {
-            	Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, 0xFE); // Use 0xFE to indicate SignalMany connection failure
-            	return false; // Optional: Log allocation failure
+                Telemetry::log(TelemetryType::MEMPOOL_ALLOC_FAIL, 0xFE); // Use 0xFE to indicate SignalMany connection failure
+                return false;                                            // Optional: Log allocation failure
             }
             else
-			{
+            {
                 SignalNode *newNode = static_cast<SignalNode *>(mem);
                 newNode->event = static_cast<void *>(event);
 
                 // Release: Payload (event pointer) must be written before making node visible
                 newNode->next = __atomic_load_n(&this->nodes_, __ATOMIC_RELAXED);
                 __atomic_store_n(&this->nodes_, newNode, __ATOMIC_RELEASE);
-				return true;
-			}
+                return true;
+            }
         }
 
         void disconnect(E *event)

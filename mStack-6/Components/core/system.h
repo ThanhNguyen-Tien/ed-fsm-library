@@ -112,9 +112,4 @@ public:
 #define CRITICAL_SECTION_PRIO(x) PriorityCriticalSection __cs(x);
 
 #endif // __cplusplus
-
-//	EVENT CONSTANTS
-#define EVENT_POOL_SIZE 24
-#define EVENT_QUEUE_SIZE 32
-
 #endif // CORE_SYSTEM_H
