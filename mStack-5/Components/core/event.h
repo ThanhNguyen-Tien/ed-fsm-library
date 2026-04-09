@@ -130,7 +130,7 @@ namespace core
 		}
 
 	private:
-		alignas(MemPool<E>::FINAL_ALIGN) uint8_t buffer_[N * MemPool<E>::STRIDE];
+		alignas(MemPool<E>::FINAL_ALIGN) uint8_t buffer_[MEMORY_SIZE];
 		MemPool<E> pool_;
 	};
 
