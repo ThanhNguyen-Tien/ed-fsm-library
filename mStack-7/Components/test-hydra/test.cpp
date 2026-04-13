@@ -103,7 +103,7 @@ M_EVENT_HANDLER(Test, strandEmpty)
 
 M_EVENT_HANDLER(::Test, strandFixed, fake_t)
 {
-	LOG_INFO_PRINTF("STRAND Fixed %u %u %u", event.f2, event.f3, event.f4);
+	LOG_WARNING_PRINTF("STRAND Fixed %u %u %u", event.f2, event.f3, event.f4);
 	commandStrand.done();
 }
 
@@ -165,7 +165,7 @@ M_EVENT_HANDLER(Test, fixedMany, struct Fake)
 
 M_EVENT_HANDLER(::Test, fixedMany_1, struct Fake)
 {
-//	LOG_DEBUG_PRINTF("FixedMany_1 %u %u %u", event.f2, event.f3, event.f4);
+	LOG_DEBUG_PRINTF("FixedMany_1 %u %u %u", event.f2, event.f3, event.f4);
 }
 
 M_EVENT_HANDLER(Test, emptySignalReceived)
@@ -173,7 +173,7 @@ M_EVENT_HANDLER(Test, emptySignalReceived)
 	LOG_INFO_PRINT("Empty Signal Received");
 }
 
-M_EVENT_HANDLER(Test, fixedSignalReceived, uint16_t)
+M_EVENT_HANDLER(Test, fixedSignalReceived, uint32_t)
 {
 	LOG_INFO_PRINTF("Fixed Signal Received %u", event);
 }

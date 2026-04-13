@@ -6,38 +6,38 @@
 
 namespace core
 {
-#define X(prio, size) \
-	alignas(4) static EventSlot_t ring##Buffer_##prio[size];
+	template <uint8_t N>
+	alignas(32) uint32_t EventQueue<N>::tempData_[32];
 
-	CORE_PRIORITY_TABLE
+	#define X(prio, size) \
+		static C_PriorityQueue<size> priorityQueue_##prio;
+		CORE_PRIORITY_TABLE
+	#undef X
 
-#undef X
+	#define X(prio, size) \
+		static_cast<I_MpscQueue*>(&priorityQueue_##prio),
 
-#define X(prio, size) \
-	{ring##Buffer_##prio, size},
-
-	static const QueueConfig queueConfigs[] =
-		{
-			CORE_PRIORITY_TABLE};
-
-#undef X
+	static I_MpscQueue* const queueInterfaces[] = {
+		CORE_PRIORITY_TABLE
+	};
+	#undef X
 
 	Event::Event(uint8_t p) : priority_(p & 0x07)
 	{
 		this->index_ = Engine::instance().events().registerEvent_(this);
 	}
 
-	Engine::Engine() : Event(0, 0), events_(queueConfigs, CORE_NUM_PRIORITIES)
+	Engine::Engine() : Event(0, 0), events_(core::queueInterfaces, CORE_NUM_PRIORITIES)
 	{
 		this->events().registerEvent_(this);
 	}
 
 	void Engine::init()
 	{
-		this->pStartTimerEvent_ = new SmallFixedEvent<Timer *>(this,
-															   static_cast<SmallFixedEvent<Timer *>::Handler>(&Engine::startTimer_));
-		this->pStopTimerEvent_ = new SmallFixedEvent<Timer *>(this,
-															  static_cast<SmallFixedEvent<Timer *>::Handler>(&Engine::stopTimer_));
+		this->pStartTimerEvent_ = new FixedEvent<Timer *>(this,
+															   static_cast<FixedEvent<Timer *>::Handler>(&Engine::startTimer_));
+		this->pStopTimerEvent_ = new FixedEvent<Timer *>(this,
+															  static_cast<FixedEvent<Timer *>::Handler>(&Engine::stopTimer_));
 		this->pCalculateCpuLoadTimer_ = new Timer(this, static_cast<Timer::Handler>(&Engine::calculateCpuLoadTimerHandler_));
 
 		systemInit();
@@ -127,7 +127,7 @@ namespace core
 		}
 	}
 
-	void Engine::execute(const EventPayload &payload)
+	void Engine::execute(const void* payload)
 	{
 		UNUSED(payload);
 

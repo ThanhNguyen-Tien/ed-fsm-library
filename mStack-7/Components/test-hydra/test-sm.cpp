@@ -13,7 +13,7 @@ STATE_BODY(Test::Idle)
 		LL_TIM_DisableCounter(TIM3);
 		LL_TIM_DisableCounter(TIM4);
 		timer_.stop();
-		core::Engine::instance().events().resetEventsMeasurements();
+//		core::Engine::instance().events().resetEventsMeasurements();
 	}
 	TRANSITION_(Event::START, RUNNING) {}
 }

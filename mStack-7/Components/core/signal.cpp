@@ -9,5 +9,5 @@ namespace core
     alignas(4) static uint8_t defaultSignalBuf[size];
 
     // Default settings for SignalMany if no private pool is specified.
-    MemPool<SignalNode> defaultSignalPool(defaultSignalBuf, 128);
+    MemPool<SignalNode> defaultSignalPool(defaultSignalBuf, MAX_CONNECTIONS);
 }

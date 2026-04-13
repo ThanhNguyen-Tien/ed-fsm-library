@@ -1,7 +1,6 @@
 #ifndef HYDRA_CONTROLLER_H_
 #define HYDRA_CONTROLLER_H_
 
-#include <core/queue.h>
 #include <core/engine.h>
 #include <core/timer.h>
 #include <hydra/command.h>

@@ -17,16 +17,6 @@ namespace core
 		virtual ~Component() {}
 	};
 
-	union EventPayload
-	{
-		uint32_t u;
-		void *p;
-
-		EventPayload() : u(0) {}
-		EventPayload(uint32_t v) : u(v) {}
-		EventPayload(void *v) : p(v) {}
-	};
-
 	class Event
 	{
 	public:
@@ -50,19 +40,25 @@ namespace core
 		};
 
 		void setPriority(uint8_t p) { priority_ = p & 0x07; }
+		uint16_t getId() const { return index_; }
 		uint8_t getPriority() const { return priority_; }
 
 		Event(uint8_t p = 0);
 		virtual ~Event() {}
 
 	protected:
-		virtual void execute(const EventPayload &payload) = 0;
-		Event(uint8_t index, uint8_t p = 0)
-			: index_(index), priority_(p & 0x07) {}
-		uint8_t index_;
+		virtual void execute(const void* payload) = 0;
+	    Event(uint16_t id, uint8_t prio)
+	        : index_(id), priority_(prio & 0x07)
+		{
+	        latency.min_time = 0xFFFFFFFF;
+	        timeExecution.min_time = 0xFFFFFFFF;
+	    }
+		uint16_t index_;
 		uint8_t priority_;
 		template <uint8_t>
 		friend class EventQueue;
+		template <uint16_t N>
 		friend class Strand;
 	};
 }

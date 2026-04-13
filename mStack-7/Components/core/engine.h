@@ -46,7 +46,7 @@ namespace core
 		{
 			if (++this->tickCount_ >= this->nextTick_)
 			{
-				this->events_.post(index_, (uint32_t)0U);
+				this->events_.post(index_, nullptr, 0); // Post an empty event to trigger timer checks
 			}
 		}
 
@@ -57,7 +57,7 @@ namespace core
 
 		void delay(uint32_t t); // t in ms, WARNING: blocking, use only in limited contexts
 
-		EventQueue<CORE_NUM_PRIORITIES> &events()
+		EventQueue<CORE_NUM_PRIORITIES>& events()
 		{
 			return this->events_;
 		}
@@ -92,8 +92,8 @@ namespace core
 			uint8_t in_idle;
 		} cpu_stats_t;
 
-		volatile cpu_stats_t cpu_stats_;
-		void execute(const EventPayload &payload) override;
+		cpu_stats_t cpu_stats_;
+		void execute(const void* payload) override;
 
 		// Timer management
 		void registerTimer_(Timer *const &timer);

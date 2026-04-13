@@ -2,7 +2,7 @@
 #define HYDRA_DRIVER_H_
 #include <hydra/define.h>
 #include <core/event.h>
-#include <core/queue.h>
+//#include <core/queue/spsc-queue.h>
 #include <string.h>
 
 #ifdef USING_DMA

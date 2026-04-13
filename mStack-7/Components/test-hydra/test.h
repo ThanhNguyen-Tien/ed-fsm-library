@@ -29,25 +29,25 @@ typedef struct StressData {
     uint32_t checksum;
 } stress_data_t;
 
-SIMPLE_MACHINE(ex, Test)
+MACHINE(ex, Test)
 	M_TIMER(testLog)
 	M_TIMER(plot)
 	M_TIMER(oscilloscope)
 	M_EVENT(empty)
-	M_EVENT(fixedMany, fake_t, 3)
-	M_EVENT(fixedMany_1, fake_t, 3)
-	M_EVENT(stress, stress_data_t, 8)
+	M_EVENT(fixedMany, fake_t)
+	M_EVENT(fixedMany_1, fake_t)
+	M_EVENT(stress, stress_data_t)
 
 	O_QUAD(quad, 0,1,2,3)
 
 	M_SIGNAL(empty)
-	M_SIGNAL(fixed, uint16_t)
+	M_SIGNAL(fixed, uint32_t)
 
 	M_SIGNAL_MANY(emptyMany);
 	M_SIGNAL_MANY(fixedMany, fake_t);
 
 	M_EVENT(emptySignalReceived)
-	M_EVENT(fixedSignalReceived, uint16_t)
+	M_EVENT(fixedSignalReceived, uint32_t)
 
 	U_ACTION(100, start)
 	U_ACTION(101, stop)
@@ -57,8 +57,8 @@ SIMPLE_MACHINE(ex, Test)
 	U_TEXT(105, name)
 
 	M_EVENT(strandEmpty)
-	M_EVENT(strandFixed, fake_t, 5)
-	M_STRAND(command, 8)
+	M_EVENT(strandFixed, fake_t)
+	M_STRAND(command, 64)
 	M_STRAND(stress, 32)
 
 public:
