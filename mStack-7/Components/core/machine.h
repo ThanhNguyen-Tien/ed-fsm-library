@@ -3,7 +3,6 @@
 
 #include <core/event.h>
 #include <core/timer.h>
-#include <cstdint>
 
 namespace core
 {

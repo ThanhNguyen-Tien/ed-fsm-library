@@ -1,7 +1,7 @@
 #ifndef CORE_STRAND_H
 #define CORE_STRAND_H
+
 #include <core/event.h>
-#include <core/system.h>
 #include <core/event-queue.h>
 #include <core/engine.h>
 #include <core/queue/spsc-queue.h>

@@ -1,8 +1,6 @@
 #include <core/engine.h>
 #include <core/system.h>
-#include <core/config.h>
 #include <core/event.h>
-#include <hydra/log.h>
 
 namespace core
 {

@@ -1,5 +1,5 @@
-#ifndef CORE_MPSC_QUEUE_H_
-#define CORE_MPSC_QUEUE_H_
+#ifndef CORE_QUEUE_MPSC_QUEUE_H_
+#define CORE_QUEUE_MPSC_QUEUE_H_
 
 #include "queue.h"
 
@@ -63,4 +63,4 @@ public:
     bool isEmpty_() override { return this->isEmpty(); }
 };
 
-#endif /* CORE_MPSC_QUEUE_H_ */
+#endif /* CORE_QUEUE_MPSC_QUEUE_H_ */

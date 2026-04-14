@@ -2,9 +2,6 @@
 #define CORE_EVENT_H
 
 #include <core/engine.h>
-#include <core/mem-pool.h>
-#include <cstdint>
-#include <string.h>
 #include <cassert>
 
 namespace core

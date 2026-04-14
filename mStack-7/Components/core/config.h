@@ -1,7 +1,7 @@
 #ifndef CORE_CONFIG_H_
 #define CORE_CONFIG_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #define EVENT_POOL_SIZE 			24
 #define MAX_EVENT_PAYLOAD_CHUNKS 	32

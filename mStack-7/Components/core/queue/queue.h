@@ -1,5 +1,5 @@
-#ifndef CORE_QUEUE_H_
-#define CORE_QUEUE_H_
+#ifndef CORE_QUEUE_QUEUE_H_
+#define CORE_QUEUE_QUEUE_H_
 
 #include <cstdint>
 
@@ -46,4 +46,4 @@ protected:
 	volatile uint32_t maxUsed_ = 0;
 };
 
-#endif /* CORE_QUEUE_H_ */
+#endif /* CORE_QUEUE_QUEUE_H_ */

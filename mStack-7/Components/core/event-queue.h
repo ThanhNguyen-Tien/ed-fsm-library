@@ -119,7 +119,11 @@ namespace core
                 e->execute(payloadPtr);
                 e->timeExecution.value = DWT->CYCCNT - exec_start;
 
-                // TODO: Cập nhật min/max latency/exec tại đây
+    			if (e->latency.value > e->latency.max_time) { e->latency.max_time = e->latency.value; } else {}
+    			if (e->latency.value < e->latency.min_time) { e->latency.min_time = e->latency.value; } else {}
+
+    			if (e->timeExecution.value > e->timeExecution.max_time) { e->timeExecution.max_time = e->timeExecution.value; } else {}
+    			if (e->timeExecution.value < e->timeExecution.min_time) { e->timeExecution.min_time = e->timeExecution.value; } else {}
             }
             else
             {

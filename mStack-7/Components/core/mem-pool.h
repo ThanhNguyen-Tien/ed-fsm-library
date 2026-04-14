@@ -1,10 +1,7 @@
 #ifndef CORE_MEM_POOL_H_
 #define CORE_MEM_POOL_H_
 
-#include <cstdlib>
-#include <cstring>
 #include <core/engine.h>
-#include "main.h"
 
 namespace core
 {
